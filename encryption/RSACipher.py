@@ -10,19 +10,18 @@ from base64 import b64encode, b64decode
 
 
 class RSACipher(object):
-    def __init__(self, pubkey_dir, privkey_dir=None):
-        self.pubkey_dir = pubkey_dir
-        self.privkey_dir = privkey_dir
-
     # Load public key back from file
-    def load_pubkey(self):
-        with open(self.pubkey_dir, 'r') as pub_file:
+    def load_pubkey(self, pubkey_dir):
+        with open(pubkey_dir, 'r') as pub_file:
             return RSA.importKey(pub_file.read())
 
     # Load private key from file
-    def load_privkey(self):
-        with open(self.privkey_dir, 'r') as priv_file:
+    def load_privkey(self, privkey_dir):
+        with open(privkey_dir, 'r') as priv_file:
             return RSA.importKey(priv_file.read())
+
+    def importRSAKey(self, key):
+        return RSA.importKey(key)
 
     # Encryption Method
     def encrypt_with_RSA(self, pub_key, data):

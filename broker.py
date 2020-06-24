@@ -75,8 +75,8 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
             if client_sess == self.request:
                 # Send the zone file over to the client
                 if flag == "zone_file":
-                    rsa_cipher = RSACipher(r"client/alice.pub", None)
-                    pubkey = rsa_cipher.load_pubkey()
+                    rsa_cipher = RSACipher()
+                    pubkey = rsa_cipher.importRSAKey(self.user_pubkey)
 
                     # Progress Bar just for fun # TODO Might change to another library like [tqdm]
                     bar = progressbar.ProgressBar(widgets=[f'[*] Sending Zone file to {client_name} ... ',

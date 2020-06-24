@@ -23,8 +23,8 @@ BROKER_PUBKEY_DIR = r"client/dnStack.pub"
 
 def get_pubkey(pubkey_dir):
     """ Function to get Public Key of Alice """
-    rsa_cipher = RSACipher(pubkey_dir, None)
-    return rsa_cipher.load_pubkey().publickey().exportKey(format='PEM', passphrase=None, pkcs=1)
+    rsa_cipher = RSACipher()
+    return rsa_cipher.load_pubkey(ALICE_PUBKEY_DIR).publickey().exportKey(format='PEM', passphrase=None, pkcs=1)
 
 
 class Broker(object):
@@ -63,6 +63,7 @@ class Broker(object):
 
         except socket.error:
             self.client_sock.close()
+
 
 # TODO <Jon to implement this part>
 # class ClientBlockChain(object):
