@@ -1,0 +1,26 @@
+{
+  "chain": [
+    {
+      "timestamp": 1506280650.770839,
+      "transactions": [
+        {
+          "domain_name": "alice.stack",
+          "pubkey": "b'-----BEGIN PUBLIC KEY-----\\\\nMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAzpbPZcAYDfiUrvQKAtt\/\\\\nYhgPdhcoqoAmPgz4Jodg19Ajup8uaajzqzjFydLA41gkpkD7RzUgvQSCwgUWDcPj\\\\nMfshNcq495CCwqt6v60AxBBSFzzNP\/XWKrXtFwYx7G9Rc+YNc6h73n5yMFjUNQ8F\\\\nZoBjff\/ABERwQEC8oTr8pzrlqGNomsOZsqQ6K+NEFnnLQejwseNDrM7HiKVoRMGV\\\\niGK3YfInj\/NwQKfHSIrN193AdJR7cFxiOhzJnWpJuuNj8TONrrs2GfUirIP3G9gL\\\\n7agthNjGq+\/bFGLRbIrtBo9RnzfCeFbUlVi0xdzZmETHOV3FAB6MC6PLkzIij4mX\\\\n2cwf1ikpgxiShcph\/9Dl8TYSloAO8bijgy0QhjopVviLmV0KY+cSmf3O\/Ezw6rva\\\\nvQ6ftkm3+53t7uuJQUaQImwAFQmT5B6IESXJRc95X6vjcy8PwHc1qNy5HL4oddnr\\\\nxO\/HX5jMWLWnMWVkBRw4wimA8EOmf47XehAuI+FPCNclAgMBAAE=\\\\n-----END PUBLIC KEY-----'\n",
+          "zone_file_hash" : "3210ac0a377a1db4935756c4b8524a2ce3f73a18a2254bf6b762e9ba522cd124"
+        }
+      ],
+      "previous_hash": 0
+    },
+    {
+      "timestamp": 1506280664.717925,
+      "transactions": [
+        {
+          "domain_name": "bob.stack",
+          "pubkey": "b'-----BEGIN PUBLIC KEY-----\\nMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAx8ZtB2mMWKg5ThQu1iIG\\nImP3LHHoIbZWUxbuK4\/5bGXW3jBT9HUtK7KyHJne9R+mdEBI4p49VGKSuoT\/IDZ8\\n0CE8o8z2hBCeAa+s609960K6arRQYP1gAzglUAP5\/qreU3gNbMGI7Th8Aw9t2jS\/\\nPCmnA1QaxzIPb8ewHTcvTY0QnVn8135rjvBQX6FuTRQ90wUZCrbUN1FaiRX9BWv3\\ngBRNLwaQc8zmHT5serHeAX4oMIUiKBJ\/JJ7aFDcFmEOtKEezLJnWrEOXF6L5CSDe\\nTCjOIDdYMeIPY8XiuF30U2m6Kg8BG6ycJHRxWAyr4KbdPom4POZFr2n8yJe1ezw8\\nuu55L8YS+o6noRkuriPfE7PWoxkvl8v6BYkUg9Oieg6BrsoAl8EaVb3N2yHR0dBg\\nzEoKaaWgaIcVOYVP+M1E4j3jtcSNvpKF4t5qcVhrzogMT5ZPta3Hq3+GQFE\/BvWP\\nfYopJPDogCxi8pRr+DOkYkdFZEt+rF6WPu1Ilk+kfjNNAgMBAAE=\\n-----END PUBLIC KEY-----'",
+          "zone_file_hash": "3210ac0a377a1db4935756c4b8524a2ce3f73a18a2254bf6b762e9ba522cd124"
+        }
+      ],
+      "previous_hash": "c099bc...bfb7"
+    }
+  ]
+}

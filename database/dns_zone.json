@@ -1,0 +1,24 @@
+{
+  "helloworld.stack": [
+    {
+      "subdomain": "www",
+      "data": "172.159.16.200",
+      "type": "A"
+    },
+    {
+      "subdomain": "mail",
+      "data": "172.159.16.201",
+      "type": "MX"
+    },
+    {
+      "subdomain": "mail",
+      "data": "172.159.16.201",
+      "type": "A"
+    },
+    {
+      "subdomain": "",
+      "data": "hellomail.stack",
+      "type": "CNAME"
+    }
+  ]
+}
