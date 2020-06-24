@@ -2,10 +2,13 @@
 Implementing DNS with Blockchain Technology
 
 ### Flow Diagram
-![alt text](img/DnStack_Flowchart.jpg)
+![Overall Flow](img/DnStack_BigPicture.jpg)
+![Blockchain Update](img/DnStack_Blockchainupdate.jpg)
+![Browser Resolver](img/DnStack_BrowserResolver.jpg)
+
 
 ## Versioning
-Please use Python 3 to run the following code. 
+Please use Python 3 to run the following code.
 
 ## Contributors
 * **Tan Zhao Yea**
