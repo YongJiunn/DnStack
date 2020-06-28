@@ -1,37 +1,46 @@
 import hashlib
-import time
+import json
 
-m = hashlib.sha256()
-m.update(b"100")
-hash = m.hexdigest()
+block = {
+    "index": 1,
+    "timestamp": 1593344359.8529475,
+    "transactions": [],
+    "proof": 100,
+    "previous_hash": 1
+}
 
 
-def proof_of_work(hash):
+def hash(block):
     """
-    Proof of work calculation
-
-    @param hash: <hashlib> Current hash of block
-    @return: next_hash and proof
+    Create a SHA-256 hash of Block
+    :param block: <dict> Block
+    :return: <str> hash of block
     """
-    current_hash = hash
+
+    block_string = json.dumps(block, sort_keys=True).encode()
+    return hashlib.sha256(block_string).hexdigest()
+
+
+def proof_of_work(previous_hash):
     proof = 0
 
-    while True:
+    while not valid_proof(previous_hash, proof):
         proof += 1
-        next_hash = hashlib.sha256(f'{current_hash * proof}'.encode()).hexdigest()
-
-        if next_hash[0:4] == "0000":
-            print(f"Current Hash: {current_hash}\n"
-                  f"Proof: {proof}\n"
-                  f"Next Hash: {next_hash}")
-            break
 
     return proof
 
 
+def valid_proof(previous_hash, proof):
+    next_hash = hashlib.sha256(f'{previous_hash * proof}'.encode()).hexdigest()
+    return next_hash[:4] == "0000"
+
+
 if __name__ == '__main__':
     print("[*] Proof of Work Program Starting ...")
-    program_start = time.time()
-    proof_of_work(hash)
-    program_end = time.time()
-    print("[TIME OF PROGRAM]", program_end - program_start, "seconds")
+    # program_start = time.time()
+    previous_hash = hash(block)
+    proof = proof_of_work(previous_hash)
+    print(proof)
+
+    # program_end = time.time()
+    # print("[TIME OF PROGRAM]", program_end - program_start, "seconds")

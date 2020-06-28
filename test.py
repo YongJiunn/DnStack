@@ -2,7 +2,6 @@ import json
 import hashlib
 
 from blockchain import Blockchain
-from functools import reduce
 
 ZONE_FILE_DIR = r"database/dns_zone.json"
 google_pubkey = "b'-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEiCAyA5SFjbNrE8C2GXtk/aoV6YRu\ndr3ifJklYd+YjT3Oj6Uss6V8lzwbSIDuXP/1x2LGu4Mopi4we0m6uSJV8A==\n-----END PUBLIC KEY-----'"
@@ -40,4 +39,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    # print(sha256("100"))
