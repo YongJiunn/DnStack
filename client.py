@@ -5,6 +5,7 @@ Author @ Zhao Yea
 """
 
 import os
+import json
 import pickle
 import socket
 
@@ -13,15 +14,19 @@ from blockchain import Blockchain
 
 UUID = "4226355408"
 HOST, PORT = "localhost", 1339
-BUFSIZE = 2048
+BUFSIZE = 1024
 CACHE_SITES = []
+
+# Flags
+ZONE_FILE = "zone_file"
+BLOCKCHAIN = "blockchain"
 
 # Public Key Directory
 ALICE_PUBKEY_DIR = r"client/alice.pub"
 BROKER_PUBKEY_DIR = r"client/dnStack.pub"
 
 # Private Key Directory
-ALICE_SECRET = r"<put_ur_own_private_key_dir>"
+ALICE_SECRET = r"<put_ur_own_secret>"
 
 # Directory to store Zone File
 ZONE_FILE_DIR = r"client/{}/dns_zone.json".format(UUID)
@@ -36,7 +41,7 @@ class Client(object):
         @return: <sock> Client socket connection to the Broker
         """
         # Start the blockchain
-        # self.blockchain = Blockchain()
+        self.blockchain = Blockchain()
 
         self.client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.client_sock.connect((host, port))
@@ -63,17 +68,21 @@ class Client(object):
 
                 if not packet:
                     break
+
                 # Concatenate the data together
                 data += packet
 
             # Load the encryption data list
-            enc = pickle.loads(data)
+            enc, chain = pickle.loads(data)
 
             # Prepare to write zone file contents locally and stored in client/ folder
             with open(ZONE_FILE_DIR, "wb") as out_file:
                 for ciphertext in enc:
                     plaintext = rsa_cipher.decrypt_with_RSA(privkey, ciphertext)
                     out_file.write(plaintext)
+
+            self.blockchain.chain = chain
+            print(json.dumps(self.blockchain.chain, indent=4))
 
         except KeyboardInterrupt:
             self.client_sock.close()

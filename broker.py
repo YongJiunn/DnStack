@@ -31,6 +31,7 @@ server_reply = "(Server)"
 JOIN = "joined"
 EXIT = "exit"
 ZONE_FILE = "zone_file"
+BLOCKCHAIN = "blockchain"
 
 # client session
 CLIENTS = {"Users": []}
@@ -66,7 +67,8 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
     def send_client(self, flag):
         # Load the RSA Cipher
         rsa_cipher = RSACipher()
-        pubkey = rsa_cipher.importRSAKey(self.user_pubkey)
+        client_pubkey = rsa_cipher.importRSAKey(self.user_pubkey)
+        # Encryption list for temporary storage
         enc = []
 
         for session in CLIENTS["Users"]:
@@ -77,18 +79,25 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                 # Send the zone file over to the client
                 if flag == "zone_file":
                     # Progress Bar just for fun # TODO Might change to another library like [tqdm]
-                    bar = progressbar.ProgressBar(widgets=[f'[*] Sending Zone file to {client_name} ... ',
-                                                           progressbar.Bar('=', '[', ']'), ' ',
-                                                           progressbar.Percentage()])
+                    bar = progressbar.ProgressBar(
+                        widgets=[f'[+] Sending Zone file and Blockchain to {client_name} ... ',
+                                 progressbar.Bar('=', '[', ']'), ' ',
+                                 progressbar.Percentage()])
                     bar.start()
 
-                    # Send Zone File over to Client
+                    # Encrypt the Zone file with RSA Cipher
                     with open(ZONE_DB_DIR, "rb") as in_file:
                         for line in in_file:
-                            ciphertext = rsa_cipher.encrypt_with_RSA(pubkey, line.strip())
+                            ciphertext = rsa_cipher.encrypt_with_RSA(pub_key=client_pubkey, data=line.strip())
                             enc.append(ciphertext)
 
-                    client_sess.send(pickle.dumps(enc))
+                    # Serialize the encrypted data and send to the client
+                    msg = (enc, blockchain.chain)
+                    client_sess.send(pickle.dumps(msg))
+
+                    # Reset the encryption list
+                    enc = []
+
                     bar.finish()
 
     def delete_client(self):
@@ -135,12 +144,10 @@ if __name__ == "__main__":
     print("[*] Constructing Blockchain ...")
     construct_blockchain(blockchain)
     print("[+] Blockchain constructed !!!")
-    print(json.dumps(blockchain.chain, indent=4))
 
+    # Start the Broker Server
     server = ThreadedServer((HOST, PORT), ThreadedServerHandle)
-
     print(f"[*] Server Started on {HOST}:{PORT}")
-
     # Start the server thread to thread every single client
     server_thread = threading.Thread(target=server.serve_forever())
     server_thread.start()
