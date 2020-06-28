@@ -28,13 +28,13 @@ class AESCipher(object):
 
         # encrypt the text with the key, IV and specify the encryption mode: Cipher Block Chaining (CBC)
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
-        cipherText = iv + cipher.encrypt(plaintext)
+        cipherText = iv + cipher.encrypt(plaintext.encode())
 
         # encode cipher text to base 64
         b64_cipherText = base64.b64encode(cipherText)
 
         # return the encrypted text and append the hash at the front of the cipher text (for integrity), seperating it with a '::'
-        return self.hash_key + "::" + b64_cipherText
+        return f"{self.hash_key}::{b64_cipherText.decode()}"
 
     def decrypt(self, pass_phrase, enc):
         hash_key = enc.split("::")[0]  # extract the hash_key

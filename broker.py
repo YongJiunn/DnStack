@@ -14,7 +14,7 @@ import progressbar
 from encryption.RSACipher import *
 
 # Server Settings
-HOST, PORT = "0.0.0.0", 1337
+HOST, PORT = "0.0.0.0", 1339
 BUFSIZE = 2048
 
 # Database
@@ -68,6 +68,10 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
             self.request.close()
 
     def send_client(self, flag):
+        # Load the RSA Cipher
+        rsa_cipher = RSACipher()
+        pubkey = rsa_cipher.importRSAKey(self.user_pubkey)
+
         for session in CLIENTS["Users"]:
             client_sess = session['id']
             client_name = session['name']
@@ -75,9 +79,6 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
             if client_sess == self.request:
                 # Send the zone file over to the client
                 if flag == "zone_file":
-                    rsa_cipher = RSACipher()
-                    pubkey = rsa_cipher.importRSAKey(self.user_pubkey)
-
                     # Progress Bar just for fun # TODO Might change to another library like [tqdm]
                     bar = progressbar.ProgressBar(widgets=[f'[*] Sending Zone file to {client_name} ... ',
                                                            progressbar.Bar('=', '[', ']'), ' ',
@@ -87,7 +88,8 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                     # Send Zone File over to Client
                     with open(ZONE_DB_DIR, "rb") as in_file:
                         for line in in_file:
-                            client_sess.send(rsa_cipher.encrypt_with_RSA(pubkey, line.strip()))
+                            ciphertext = rsa_cipher.encrypt_with_RSA(pubkey, line.strip())
+                            client_sess.send(ciphertext)
 
                     bar.finish()
 

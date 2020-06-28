@@ -20,5 +20,17 @@
       "data": "hellomail.stack",
       "type": "CNAME"
     }
+  ],
+  "google.com": [
+    {
+      "subdomain": "www",
+      "data": "172.217.31.68",
+      "type": "A"
+    },
+    {
+      "subdomain": "mail",
+      "data": "172.217.166.133",
+      "type": "MX"
+    }
   ]
 }

@@ -12,12 +12,12 @@ from base64 import b64encode, b64decode
 class RSACipher(object):
     # Load public key back from file
     def load_pubkey(self, pubkey_dir):
-        with open(pubkey_dir, 'r') as pub_file:
+        with open(pubkey_dir, 'rb') as pub_file:
             return RSA.importKey(pub_file.read())
 
     # Load private key from file
     def load_privkey(self, privkey_dir):
-        with open(privkey_dir, 'r') as priv_file:
+        with open(privkey_dir, 'rb') as priv_file:
             return RSA.importKey(priv_file.read())
 
     def importRSAKey(self, key):
