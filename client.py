@@ -20,6 +20,9 @@ CACHE_SITES = []
 ALICE_PUBKEY_DIR = r"client/alice.pub"
 BROKER_PUBKEY_DIR = r"client/dnStack.pub"
 
+# Private Key Directory
+ALICE_SECRET = r"<put_ur_own_private_key_dir>"
+
 # Directory to store Zone File
 ZONE_FILE_DIR = r"client/{}/dns_zone.json".format(UUID)
 
@@ -50,7 +53,7 @@ class Client(object):
 
         # Load the RSACipher for encryption/decryption
         rsa_cipher = RSACipher()
-        privkey = rsa_cipher.load_privkey(r"/home/osboxes/.ssh/alice_rsa")
+        privkey = rsa_cipher.load_privkey(ALICE_SECRET)
 
         try:
             # Prepare for incoming data
