@@ -17,10 +17,6 @@ HOST, PORT = "localhost", 1339
 BUFSIZE = 1024
 CACHE_SITES = []
 
-# Flags
-ZONE_FILE = "zone_file"
-BLOCKCHAIN = "blockchain"
-
 # Public Key Directory
 ALICE_PUBKEY_DIR = r"client/alice.pub"
 BROKER_PUBKEY_DIR = r"client/dnStack.pub"
