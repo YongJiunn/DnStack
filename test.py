@@ -4,12 +4,16 @@ import hashlib
 from blockchain import Blockchain
 
 ZONE_FILE_DIR = r"database/dns_zone.json"
-google_pubkey = "b'-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEiCAyA5SFjbNrE8C2GXtk/aoV6YRu\ndr3ifJklYd+YjT3Oj6Uss6V8lzwbSIDuXP/1x2LGu4Mopi4we0m6uSJV8A==\n-----END PUBLIC KEY-----'"
+UUID = "4226355408"
 
 
-def sha256(data):
-    hash_sha256 = hashlib.sha256(data.encode())
-    return hash_sha256.hexdigest()
+def sha256(fname):
+    file_hash = hashlib.sha256()
+    with open(fname, "rb") as in_file:
+        for chunk in iter(lambda: in_file.read(4096), b""):
+            file_hash.update(chunk)
+
+    return file_hash.hexdigest()
 
 
 def main():
@@ -20,13 +24,13 @@ def main():
 
     for domain_name in data.keys():
         print(f"Domain Name: {domain_name}")
-        blockchain.new_transaction(domain_name=domain_name,
-                                   pubkey=google_pubkey,
+        blockchain.new_transaction(client=UUID,
+                                   domain_name=domain_name,
                                    zone_file_hash=sha256(ZONE_FILE_DIR))
 
         # Mining happens
         last_block = blockchain.last_block
-        previous_hash = blockchain.hash(last_block)
+        previous_hash = blockchain.block_hash(last_block)
         print(f"Previous Hash: {previous_hash}")
 
         proof = blockchain.proof_of_work(previous_hash)

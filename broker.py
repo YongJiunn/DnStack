@@ -1,9 +1,10 @@
 """
-Eve Script (Server)
+Broker Script
 
 Author @ Zhao Yea 
 """
 
+import json
 import pickle
 import socket
 import threading
@@ -12,8 +13,10 @@ import pandas as pd
 import progressbar
 
 from encryption.RSACipher import *
+from blockchain import Blockchain
 
 # Server Settings
+UUID = "(Server)"
 HOST, PORT = "0.0.0.0", 1339
 BUFSIZE = 2048
 
@@ -33,20 +36,13 @@ ZONE_FILE = "zone_file"
 CLIENTS = {"Users": []}
 
 
-def get_username(user_db, user_id):
-    user_df = pd.read_csv(user_db, sep=",", header=0)
-    # Check whether the user_id exist in the ID column of dataframe
-    if user_id in map(lambda x: str(x), user_df.id.values):
-        return user_df.loc[user_df.id.isin([user_id])].name.to_string(index=False).lstrip()
-
-
 class ThreadedServerHandle(socketserver.BaseRequestHandler):
     def handle(self):
         # Try catch the error
         try:
             # Get the user_id and public key
             user_id, self.user_pubkey = pickle.loads(self.request.recv(BUFSIZE))
-            self.username = get_username(USER_DB_DIR, user_id)
+            self.username = self.get_username(USER_DB_DIR, user_id)
 
             # Info message
             print(f"[*] {self.username} has started the connection.")
@@ -71,6 +67,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
         # Load the RSA Cipher
         rsa_cipher = RSACipher()
         pubkey = rsa_cipher.importRSAKey(self.user_pubkey)
+        enc = []
 
         for session in CLIENTS["Users"]:
             client_sess = session['id']
@@ -89,8 +86,9 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                     with open(ZONE_DB_DIR, "rb") as in_file:
                         for line in in_file:
                             ciphertext = rsa_cipher.encrypt_with_RSA(pubkey, line.strip())
-                            client_sess.send(ciphertext)
+                            enc.append(ciphertext)
 
+                    client_sess.send(pickle.dumps(enc))
                     bar.finish()
 
     def delete_client(self):
@@ -99,12 +97,46 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
             if CLIENTS["Users"][index]["id"] == self.request:
                 del CLIENTS["Users"][index]
 
+    @staticmethod
+    def get_username(user_db, user_id):
+        user_df = pd.read_csv(user_db, sep=",", header=0)
+        # Check whether the user_id exist in the ID column of dataframe
+        if user_id in map(lambda x: str(x), user_df.id.values):
+            return user_df.loc[user_df.id.isin([user_id])].name.to_string(index=False).lstrip()
+
 
 class ThreadedServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     pass
 
 
+def construct_blockchain(bc):
+    """ Construct the Blockchain from the Zone File """
+    # Open the Zone File and load it
+    with open(ZONE_DB_DIR, "rb") as in_file:
+        data = json.loads(in_file.read())
+
+    for domain_name in data.keys():
+        bc.new_transaction(client=UUID,
+                           domain_name=domain_name,
+                           zone_file_hash=bc.generate_sha256(ZONE_DB_DIR))
+
+        # Does Proof of Work
+        last_block = bc.last_block
+        previous_hash = bc.block_hash(last_block)
+        proof = bc.proof_of_work(previous_hash)
+
+        # Create the new block
+        bc.new_block(proof=proof, previous_hash=previous_hash)
+
+
 if __name__ == "__main__":
+    # Start and construct the Blockchain
+    blockchain = Blockchain()
+    print("[*] Constructing Blockchain ...")
+    construct_blockchain(blockchain)
+    print("[+] Blockchain constructed !!!")
+    print(json.dumps(blockchain.chain, indent=4))
+
     server = ThreadedServer((HOST, PORT), ThreadedServerHandle)
 
     print(f"[*] Server Started on {HOST}:{PORT}")

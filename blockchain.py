@@ -38,18 +38,18 @@ class Blockchain(object):
         self.chain.append(block)
         return block
 
-    def new_transaction(self, domain_name, pubkey, zone_file_hash):
+    def new_transaction(self, client, domain_name, zone_file_hash):
         """
         Creates a new chunk of data to go into the our Block chain
+        @param client: <str> uuid of the requesting client
         @param domain_name: <str> Domain name
-        @param pubkey: <str> Public Key of the domain
         @param zone_file_hash: <hash> Hash of zone file
         @return: <int> Index of the Block that will hold this transaction
         """
 
         self.current_transactions.append({
+            'client': client,
             'domain_name': domain_name,
-            'pubkey': pubkey,
             'zone_file_hash': zone_file_hash
         })
 
@@ -76,11 +76,13 @@ class Blockchain(object):
         :param proof: <int> Current Proof
         :return: <bool> True if correct, False if not.
         """
-        guess_hash = hashlib.sha256(f'{previous_hash * proof}'.encode()).hexdigest()
+        # guess_hash = hashlib.sha256(f'{previous_hash * proof}'.encode()).hexdigest()
+        # TODO This is a temp POW, faster for testing purposes
+        guess_hash = hashlib.sha256(f'{previous_hash} * {proof}'.encode()).hexdigest()
         return guess_hash[:4] == "0000"
 
     @staticmethod
-    def hash(block):
+    def block_hash(block):
         """
         Create a SHA-256 hash of Block
         :param block: <dict> Block
@@ -89,6 +91,21 @@ class Blockchain(object):
 
         block_string = json.dumps(block, sort_keys=True).encode()
         return hashlib.sha256(block_string).hexdigest()
+
+    @staticmethod
+    def generate_sha256(fname):
+        """
+        Generate a sha256 hash of the given file
+        @param fname: <dir> Directory of the given filename
+        @return: <hash> SHA256 Hash of the given file
+        """
+
+        file_hash = hashlib.sha256()
+        with open(fname, "rb") as in_file:
+            for chunk in iter(lambda: in_file.read(4096), b""):
+                file_hash.update(chunk)
+
+        return file_hash.hexdigest()
 
     @property
     def last_block(self):
