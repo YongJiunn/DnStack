@@ -92,7 +92,7 @@ class Client(object):
 
                     print(chain)
                     # Verify the given blockchain
-                    flag, msg = self.verify_blockchain(chain)
+                    flag, msg = self.blockchain.verify_blockchain(chain)
                     print(msg)
 
                     if flag:
@@ -110,31 +110,6 @@ class Client(object):
 
         except socket.error:
             self.client_sock.close()
-
-    def verify_blockchain(self, chain):
-        """
-        Verifies that the blockchain is authentic. Ensures equation is True.
-        Equation: Previous hash * proof = 0000......
-        @return: Returns True if blockchain is verified, False otherwise
-        """
-        last_block = chain[1]
-        current_index = 2
-
-        while current_index < len(chain):
-            block = chain[current_index]
-
-            # Check the hash of the block is correct
-            if block['previous_hash'] != self.blockchain.block_hash(last_block):
-                return (False, "[!] Error in blockchain! Do not visit any domains until you can update your zone file")
-
-            # Check that the Proof of Work is correct:
-            if not self.blockchain.valid_proof(last_block['previous_hash'], last_block['proof']):
-                return (False, "[!] Error in blockchain! Do not visit any domains until you can update your zone file")
-
-            last_block = block
-            current_index += 1
-
-        return (True, "[*] Blockchain verified successfully")
 
     @staticmethod
     def get_pubkey(pubkey_dir):
