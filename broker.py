@@ -57,7 +57,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
             # Info message
             print(f"[*] {self.username} has started the connection.")
 
-            # Add the client session
+            # Add the new Client to the session DB
             CLIENTS["Users"].append({
                 "id": self.request,
                 "name": self.username,
@@ -75,20 +75,29 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
             self.request.close()
 
     def send_client(self, action, flag):
+        """
+        Handles the sending feature to the respective clients that are connected to the Broker
+        @param action: <str> Can be either to SELF or BROADCAST
+        @param flag: <str> Requested flag to be performed
+        @return: No return
+        """
         # Load the RSA Cipher
         self.rsa_cipher = RSACipher()
 
         # Encryption list for temporary storage
         enc = []
-
+        # Iterate through the CLIENTS session
         for session in CLIENTS["Users"]:
             client_sess = session['id']
+            self.client_name = session['name']
             client_pubkey = self.rsa_cipher.importRSAKey(session['pubkey'])
 
             # Peer to Peer communication with only one client
             if action == SELF_INFO and client_sess == self.request:
                 # Send the zone file over to the client
                 if flag == ZONE_FILE:
+                    print(f"[+] Sending Zone file to {self.client_name}")
+
                     # Encrypt the Zone file with RSA Cipher
                     with open(ZONE_DB_DIR, "rb") as in_file:
                         for line in in_file:
@@ -110,6 +119,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                 # Send message the encrypted domain over to the client
                 if flag == NEW_DOMAIN:
                     encrypted_domain = self.rsa_cipher.encrypt_with_RSA(pub_key=client_pubkey, data=self.plain_domain)
+                    print(f"[+] Forwarding Domain information to: {self.client_name}")
                     client_sess.send(pickle.dumps(encrypted_domain))
                     client_sess.send(NEW_DOMAIN.encode())
 
@@ -130,9 +140,11 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                 # Register Domain Flag
                 elif REGIS_DOMAIN in packet:
                     data += packet.rstrip(REGIS_DOMAIN)
-
                     # Load the encryption data list
                     enc, current_transaction = pickle.loads(data)
+                    # TODO Make use of the current_transaction for MINING Purposes
+
+                    print(f"[+] {self.client_name} has registered for a domain")
                     # Decrypt the given encryption list
                     plaintext = [self.rsa_cipher.decrypt_with_RSA(broker_privkey, ciphertext) for ciphertext in
                                  enc]
