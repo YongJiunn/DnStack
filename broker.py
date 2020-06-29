@@ -60,11 +60,9 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
             # Run the message handler to receive client data
             self.message_handle()
 
-
         # Close the socket if client forcefully close the connection
         except socket.error:
             self.delete_client()
-            print(f"\n[*] {self.username} left the chat room.".encode())
             self.request.close()
 
     def send_client(self, flag):
@@ -81,13 +79,6 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
             if client_sess == self.request:
                 # Send the zone file over to the client
                 if flag == "zone_file":
-                    # Progress Bar just for fun # TODO Might change to another library like [tqdm]
-                    bar = progressbar.ProgressBar(
-                        widgets=[f'[+] Sending Zone file and Blockchain to {client_name} ... ',
-                                 progressbar.Bar('=', '[', ']'), ' ',
-                                 progressbar.Percentage()])
-                    bar.start()
-
                     # Encrypt the Zone file with RSA Cipher
                     with open(ZONE_DB_DIR, "rb") as in_file:
                         for line in in_file:
@@ -98,30 +89,35 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                     msg = (enc, blockchain.chain)
                     client_sess.send(pickle.dumps(msg))
 
-                    # Indicate the end of file
-                    client_sess.send("EOL".encode())
+                    # Send Zone File flag to indicate EOL
+                    client_sess.send(ZONE_FILE.encode())
 
                     # Reset the encryption list
                     enc = []
 
-                    bar.finish()
-
     def message_handle(self):
         try:
             while True:
-                # Receive Client send message and strip the '\n'
+                # Receive Client send message
                 self.data = self.request.recv(BUFSIZE)
+
+                if not self.data:
+                    self.delete_client()
+                    break
+
                 print(self.data)
 
         except socket.error:
             self.delete_client()
-            print(f"\n[*] {self.username} left the chat room.".encode())
+            self.request.close()
 
     def delete_client(self):
         # Delete the client in the dictionary list
         for index in range(len(CLIENTS["Users"])):
             if CLIENTS["Users"][index]["id"] == self.request:
                 del CLIENTS["Users"][index]
+
+        print(f"[*] {self.username} left the chat room.")
 
     @staticmethod
     def get_username(user_db, user_id):
