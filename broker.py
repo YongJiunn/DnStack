@@ -96,7 +96,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
             if action == SELF_INFO and client_sess == self.request:
                 # Send the zone file over to the client
                 if flag == ZONE_FILE:
-                    print(f"[+] Sending Zone file to {self.client_name}")
+                    print(f"\t[+] Sending Zone file to {self.client_name}")
 
                     # Encrypt the Zone file with RSA Cipher
                     with open(ZONE_DB_DIR, "rb") as in_file:
@@ -119,7 +119,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                 # Send message the encrypted domain over to the client
                 if flag == NEW_DOMAIN:
                     encrypted_domain = self.rsa_cipher.encrypt_with_RSA(pub_key=client_pubkey, data=self.plain_domain)
-                    print(f"[+] Forwarding Domain information to: {self.client_name}")
+                    print(f"\t[+] Forwarding Domain information to: {self.client_name}")
                     client_sess.send(pickle.dumps(encrypted_domain))
                     client_sess.send(NEW_DOMAIN.encode())
 
@@ -144,7 +144,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                     enc, current_transaction = pickle.loads(data)
                     # TODO Make use of the current_transaction for MINING Purposes
 
-                    print(f"[+] {self.client_name} has registered for a domain")
+                    print(f"[*] {self.client_name} has registered for a domain")
                     # Decrypt the given encryption list
                     plaintext = [self.rsa_cipher.decrypt_with_RSA(broker_privkey, ciphertext) for ciphertext in
                                  enc]
@@ -206,7 +206,7 @@ if __name__ == "__main__":
     blockchain = Blockchain()
     print("[*] Constructing Blockchain ...")
     construct_blockchain(blockchain)
-    print("[+] Blockchain constructed !!!")
+    print("\t[+] Blockchain constructed !!!")
 
     # Start the Broker Server
     server = ThreadedServer((HOST, PORT), ThreadedServerHandle)
