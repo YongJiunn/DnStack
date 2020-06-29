@@ -41,40 +41,46 @@ class Client(object):
         """
 
         # Initial pull request for updated zone file
-        self.request_record(host, port)
-        self.verify_blockchain()
+        if self.request_record(host, port):
+            self.verify_blockchain()
+            # Temporary menu system for Proof Of Concept (POC)
+            # Client will be browser/proxy in the future
+            while True:
 
-        # Temporary menu system for Proof Of Concept (POC)
-        # Client will be browser/proxy in the future
-        while True:
+                print(f"\n\t###### Today's Menu ######")
+                # print(f"\t[1] Request for DNS record (Update)")
+                print(f"\t[1] Register a new domain")
+                print(f"\t[2] Resolve a domain")
+                print(f"\t[3] Resolve an IP address")
+                print(f"\t[4] Quit")
 
-            print(f"\n\t###### Today's Menu ######")
-            # print(f"\t[1] Request for DNS record (Update)")
-            print(f"\t[1] Register a new domain")
-            print(f"\t[2] Resolve a domain")
-            print(f"\t[3] Quit")
+                try:
+                    user_option = input("\t >  ")
+                except KeyboardInterrupt:
+                    user_option = "4"
 
-            user_option = input("\t >  ")
-
-            if user_option == "3":
-                # User wants to quit
-                print("[!] Bye!")
-                return
-            elif user_option == "1":
-                # !! Currently not working !!
-                # User wants to register a new domain
-                print("[!] Option to register new domain chosen")
-                self.register_domain()
-                return
-            elif user_option == "2":
-                # User wants to resolve a domain name
-                print("[!] Option to resolve domain chosen")
-                domain_name = input("[*] Enter domain name to resolve > ")
-                self.resolve_domain(domain_name)
-                return
-            else:
-                # User doesn't know what he wants
-                print("[*] Please select an option.")
+                if user_option == "4":
+                    # User wants to quit
+                    print("\n[!] Bye!")
+                    return
+                elif user_option == "1":
+                    # !! Currently not working !!
+                    # User wants to register a new domain
+                    print("[!] Option to register new domain chosen")
+                    self.register_domain()
+                elif user_option == "2":
+                    # User wants to resolve a domain name
+                    print("[!] Option to resolve domain chosen")
+                    domain_name = input("[*] Enter domain name to resolve > ")
+                    self.resolve_domain(domain_name)
+                elif user_option == "3":
+                    # User wants to resolve an IP address
+                    print("[!] Option to resolve IP address chosen")
+                    ip_addr = input("[*] Enter IP address to resolve > ")
+                    self.resolve_ip(ip_addr)
+                else:
+                    # User doesn't know what he wants
+                    print("[*] Please select an option.")
 
     def request_record(self, host, port):
         """
@@ -95,9 +101,10 @@ class Client(object):
         # Connects to broker
         try:
             self.client_sock.connect((host, port))
-        except ConnectionRefusedError:
+        except socket.error:
             print(
                 f"[!] Connection failed! Please check your network connectivity and try again.")
+            self.client_sock.close()
             return False
 
         # Send client pubkey over to server on initial connection
@@ -121,30 +128,40 @@ class Client(object):
 
         # Does a check if domain already exists
         print("[*] Checking if domain is taken... Please wait")
-        with open(ZONE_FILE_DIR, "rb") as in_file:
-            data = json.loads(in_file.read())
-
-        for existing_domain in data.keys():
-            if existing_domain == new_domain_name:
+        for i in self.blockchain.chain[1:]:
+            # If the domain exists in the blockchain
+            if (i["transactions"][0]["domain_name"]) == new_domain_name:
                 print(
                     f"[*] Domain {new_domain_name} already exists! Please choose another domain.")
                 return False
 
-        # Defaults to fixed zone file
+        # Requests for zone file
         print("\n[*] Please enter the path to your zone file. (Eg. C:\\Users\\bitcoinmaster\\bitcoinzone.json)")
         new_zone_file = input(" >  ")
 
-        # [TODO] Check if zone_file
-        #   1. Exists
-        #   2. Is in correct json format
-        new_zone_file = ZONE_DB_DIR
+        # TODO Check if zone_file:
+        # - Is in correct json format
+
+        # Checks if file exists
+        if not os.path.isfile(new_zone_file):
+            print("\n[*] File not found.")
+            return False
 
         print("\n\t###### Registering new domain ######")
         print(f"\tClient: {UUID}")
         print(f"\tDomain Name: {new_domain_name}")
         print(f"\tZone File: {new_zone_file}")
 
-        user_confirmation = input("\n[*] Continue? Y/N > ")
+        try:
+            user_confirmation = input("\n[*] Continue? Y/N > ")
+        except KeyboardInterrupt:
+            return False
+
+        if user_confirmation == "Y":
+            self.blockchain.new_transaction(client=UUID, domain_name=new_domain_name, zone_file_hash=self.blockchain.generate_sha256(new_zone_file))
+
+        # TODO Forward transaction to broker then to miner
+        self.client_sock.send(pickle.dumps(self.blockchain.current_transactions))
 
         return True
 
@@ -155,20 +172,47 @@ class Client(object):
         @return: Returns True if domain is resolved, False otherwise
         """
 
-        # Loads in zone file
-        with open(ZONE_FILE_DIR, "rb") as in_file:
-            data = json.loads(in_file.read())
+        # Locates domain in blockchain
+        for i in self.blockchain.chain[1:]:
+            # If the domain exists in the blockchain
+            if (i["transactions"][0]["domain_name"]) == domain_name:
 
-        # Loops through to locate requested domain
-        for domains in data.keys():
-            if domains == domain_name:
-                print("\t###### IP Addresses ######")
-                for i in data[domains]:
-                    print(f"\t{i['type']}\t{i['data']}")
-                return True
+                # Loads in zone file
+                with open(ZONE_FILE_DIR, "rb") as in_file:
+                    data=json.loads(in_file.read())
+
+                # Loops through to locate requested domain
+                for domains in data.keys():
+                    if domains == domain_name:
+                        print("\n\t###### IP Addresses ######")
+                        for i in data[domains]:
+                            print(f"\t{i['type']}\t{i['data']}")
+                        return True
+
         print("[*] Domain does not exist! Have you updated your zone file?")
         return False
 
+    def resolve_ip(self, ip_address):
+        """
+        Resolves IP addresses
+        @param ip_address: <str> IP address to resolve to domain name
+        @return: Returns True if IP address is resolved, False otherwise
+        """
+
+        # Loads in zone file
+        with open(ZONE_FILE_DIR, "rb") as in_file:
+            data=json.loads(in_file.read())
+
+        # Loops through to locate requested IP address
+        for domain in data.keys():
+            for subdomains in data[domain]:
+                if subdomains["data"] == ip_address:
+                    print("\n\t###### Domain Name ######")
+                    print(f"\t{domain}")
+                    return True
+
+        print("[*] IP address does not exist! Have you updated your zone file?")
+        return False
 
     def verify_blockchain(self):
         """
@@ -176,15 +220,16 @@ class Client(object):
         Equation: Previous hash * proof = 0000......
         @return: Returns True if blockchain is verified, False otherwise
         """
+
         for i in self.blockchain.chain[1:]:
-            proof = i["proof"]
-            previous_hash = i["previous_hash"]
-            if not Blockchain.valid_proof(previous_hash, proof):
-                print("[!] Error in blockchain! Do not visit any domains until you can update your zone file")
+            proof=i["proof"]
+            previous_hash=i["previous_hash"]
+            if not self.blockchain.valid_proof(previous_hash, proof):
+                print(
+                    "[!] Error in blockchain! Do not visit any domains until you can update your zone file")
                 return False
         print("[*] Blockchain verified successfully")
         return True
-
 
     def message_handle(self):
         """
@@ -193,50 +238,55 @@ class Client(object):
         """
 
         # Load the RSACipher for encryption/decryption
-        rsa_cipher = RSACipher()
-        privkey = rsa_cipher.load_privkey(ALICE_SECRET)
+        rsa_cipher=RSACipher()
+        privkey=rsa_cipher.load_privkey(ALICE_SECRET)
 
         try:
             # Prepare for incoming data
-            data = b""
+            data=b""
             while True:
-                packet = self.client_sock.recv(BUFSIZE)
+                packet=self.client_sock.recv(BUFSIZE)
 
                 if not packet:
+                    break
+                elif "EOL".encode() in packet:
+                    data += packet.rstrip("EOL".encode())
                     break
 
                 # Concatenate the data together
                 data += packet
 
             # Load the encryption data list
-            enc, chain = pickle.loads(data)
+            enc, chain=pickle.loads(data)
+
 
             # Prepare to write zone file contents locally and stored in client/ folder
             with open(ZONE_FILE_DIR, "wb") as out_file:
                 for ciphertext in enc:
-                    plaintext = rsa_cipher.decrypt_with_RSA(
+                    plaintext=rsa_cipher.decrypt_with_RSA(
                         privkey, ciphertext)
                     out_file.write(plaintext)
                 print(f"[*] Zone File updated successfully")
 
-            self.blockchain.chain = chain
-            #print(json.dumps(self.blockchain.chain, indent=4))
+            self.blockchain.chain=chain
+            # print(json.dumps(self.blockchain.chain, indent=4))
             return True
 
         except KeyboardInterrupt:
             self.client_sock.close()
 
         except socket.error:
+            print(socket.error)
             self.client_sock.close()
 
-    @staticmethod
+    @ staticmethod
     def get_pubkey(pubkey_dir):
         """
         Function to get Public Key of Alice
         @param pubkey_dir: <str> Directory of the client's Public Key
         @return:
         """
-        rsa_cipher = RSACipher()
+        rsa_cipher=RSACipher()
         return rsa_cipher.load_pubkey(pubkey_dir).publickey().exportKey(format='PEM', passphrase=None, pkcs=1)
 
 
