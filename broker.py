@@ -58,7 +58,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
             self.send_client(ZONE_FILE)
 
             # Run the message handler to receive client data
-            self.message_handler()
+            self.message_handle()
 
 
         # Close the socket if client forcefully close the connection
