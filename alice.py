@@ -8,27 +8,33 @@ import os
 import json
 import pickle
 import socket
+import random
+import struct
+import threading
 
 from encryption.RSACipher import *
 from blockchain import Blockchain
 
 UUID = "4226355408"
-HOST, PORT = "localhost", 1339
+HOST, PORT = "localhost", 1338
 BUFSIZE = 1024
 CACHE_SITES = []
 
 # Public Key Directory
-ALICE_PUBKEY_DIR = r"client/alice.pub"
+CLIENT_PUBKEY_DIR = r"client/alice.pub"
 BROKER_PUBKEY_DIR = r"client/dnStack.pub"
 
 # Private Key Directory
-ALICE_SECRET = r"/home/osboxes/.ssh/alice_rsa"
+SECRET_KEY = r"/home/osboxes/.ssh/alice_rsa"
 
 # Directory to store Zone File
 ZONE_FILE_DIR = r"client/{}/dns_zone.json".format(UUID)
 
 # Flags
 ZONE_FILE = "zone_file".encode()
+NEW_DOMAIN = "new_domain".encode()
+
+REGIS_DOMAIN = "register_domain"
 
 
 class Client(object):
@@ -56,7 +62,7 @@ class Client(object):
             self.client_sock.close()
 
         # Send client pubkey over to server on initial connection
-        server_hello_msg = (UUID, self.get_pubkey(ALICE_PUBKEY_DIR))
+        server_hello_msg = (UUID, self.get_pubkey(CLIENT_PUBKEY_DIR))
         self.client_sock.send(pickle.dumps(server_hello_msg))
 
         # Run the message_handle
@@ -66,8 +72,8 @@ class Client(object):
         """ Handles the message between server and client """
 
         # Load the RSACipher for encryption/decryption
-        rsa_cipher = RSACipher()
-        privkey = rsa_cipher.load_privkey(ALICE_SECRET)
+        self.rsa_cipher = RSACipher()
+        privkey = self.rsa_cipher.load_privkey(SECRET_KEY)
 
         try:
             # Prepare for incoming data
@@ -75,22 +81,24 @@ class Client(object):
             while True:
                 packet = self.client_sock.recv(BUFSIZE)
 
+                # Break out of the loop the connection is lost to the server
                 if not packet:
                     break
 
                 # ZONE FILE HANDLER
                 elif ZONE_FILE in packet:
+                    # Strip the flag
                     data += packet.rstrip(ZONE_FILE)
 
-                    # Load the encryption data list
+                    # Load the encrypted data list
                     enc, chain = pickle.loads(data)
                     # Prepare to write zone file contents locally and stored in client/ folder
+                    print(f"[+] Zone file received from Broker, saving under: {ZONE_FILE_DIR}")
                     with open(ZONE_FILE_DIR, "wb") as out_file:
                         for ciphertext in enc:
-                            plaintext = rsa_cipher.decrypt_with_RSA(privkey, ciphertext)
+                            plaintext = self.rsa_cipher.decrypt_with_RSA(privkey, ciphertext)
                             out_file.write(plaintext)
 
-                    print(chain)
                     # Verify the given blockchain
                     flag, msg = self.blockchain.verify_blockchain(chain)
                     print(msg)
@@ -100,9 +108,33 @@ class Client(object):
                         self.blockchain.chain = chain
 
                         # Run the user_menu
-                        self.user_menu()
+                        threading.Thread(target=self.user_menu).start()
 
-                # Concatenate the data
+                    # Reset the data buffer
+                    data, packet = b"", b""
+
+                # NEW DOMAIN File Handler
+                elif NEW_DOMAIN in packet:
+                    print("[+] Receiving a new domain zone file")
+                    # Strip the flag
+                    data += packet.rstrip(NEW_DOMAIN)
+                    # Load the encrypted data
+                    enc = pickle.loads(data)
+                    # Load the json data into a dictionary
+                    new_domain = json.loads(self.rsa_cipher.decrypt_with_RSA(priv_key=privkey, data=enc))
+                    # Extract the domain_name
+                    domain_name = list(new_domain.keys())[0]
+                    new_domain_zone_fpath = f"client/{UUID}/{domain_name}.json"
+
+                    print(f"[+] Writing new zone file: {domain_name} to {new_domain_zone_fpath}")
+                    # Save the new domain zone file locally
+                    with open(new_domain_zone_fpath, "w") as out_file:
+                        out_file.write(json.dumps(new_domain))
+
+                    # Reset the data buffer
+                    data, packet = b"", b""
+
+                    # Concatenate the data
                 data += packet
 
         except KeyboardInterrupt:
@@ -110,6 +142,25 @@ class Client(object):
 
         except socket.error:
             self.client_sock.close()
+
+    def send_server(self, flag):
+        """ Constructs and forward data over to the broker """
+        pubkey = self.rsa_cipher.load_pubkey(BROKER_PUBKEY_DIR)
+        enc = []
+
+        if flag == REGIS_DOMAIN:
+            with open(self.new_zone_fpath, "rb") as in_file:
+                for line in in_file:
+                    ciphertext = self.rsa_cipher.encrypt_with_RSA(pub_key=pubkey, data=line.strip())
+                    enc.append(ciphertext)
+
+            print("[+] Forwarding new zone file and transaction block to Broker ...")
+            # Serialize the encrypted data and send to the client
+            msg = (enc, self.blockchain.current_transactions)
+            self.client_sock.send(pickle.dumps(msg))
+
+            # Send REGIS_DOMAIN flag to indicate EOL
+            self.client_sock.send(REGIS_DOMAIN.encode())
 
     @staticmethod
     def get_pubkey(pubkey_dir):
@@ -141,16 +192,20 @@ class Client(object):
                 # User wants to quit
                 print("\n[!] Bye!")
                 return False
+
             elif user_option == "1":
                 # !! Currently not working !!
                 # User wants to register a new domain
                 print("[!] Option to register new domain chosen")
-                self.register_domain()
+                if self.register_domain():
+                    self.send_server(REGIS_DOMAIN)
+
             elif user_option == "2":
                 # User wants to resolve a domain name
                 print("[!] Option to resolve domain chosen")
                 domain_name = input("[*] Enter domain name to resolve > ")
                 self.resolve_domain(domain_name)
+
             elif user_option == "3":
                 # User wants to resolve an IP address
                 print("[!] Option to resolve IP address chosen")
@@ -163,52 +218,55 @@ class Client(object):
     def register_domain(self):
         """
         Registers a new domain, currently only POC. Does not work fully.
-        @return: True
+        @return: <bool>
         """
 
         # Requesting for new domain name to register
-        print("[*] Please enter your new domain name, without any prefix. (Eg. google.stack, youtube.stack)")
+        print("[+] Please enter your new domain name, without any prefix. (Eg. google.stack, youtube.stack)")
         new_domain_name = input(" >  ")
 
         # Does a check if domain already exists
-        print("[*] Checking if domain is taken... Please wait")
-        for i in self.blockchain.chain[1:]:
+        print("[+] Checking if domain is taken... Please wait")
+        for block in self.blockchain.chain[1:]:
             # If the domain exists in the blockchain
-            if (i["transactions"][0]["domain_name"]) == new_domain_name:
-                print(
-                    f"[*] Domain {new_domain_name} already exists! Please choose another domain.")
+            if (block["transactions"][0]["domain_name"]) == new_domain_name:
+                print(f"[*] Domain {new_domain_name} already exists! Please choose another domain.")
                 return False
 
-        # Requests for zone file
-        print("\n[*] Please enter the path to your zone file. (Eg. C:\\Users\\bitcoinmaster\\bitcoinzone.json)")
-        new_zone_file = input(" >  ")
-
-        # TODO Check if zone_file:
-        # - Is in correct json format
-
-        # Checks if file exists
-        if not os.path.isfile(new_zone_file):
-            print("\n[*] File not found.")
-            return False
+        self.new_zone_fpath = f"client/{UUID}/{new_domain_name}.json"
 
         print("\n\t###### Registering new domain ######")
         print(f"\tClient: {UUID}")
         print(f"\tDomain Name: {new_domain_name}")
-        print(f"\tZone File: {new_zone_file}")
+        print(f"\tZone File: {self.new_zone_fpath}")
 
         try:
-            user_confirmation = input("\n[*] Continue? Y/N > ")
+            user_confirmation = input("\n[*] Continue? Y/N > ").upper()
+
         except KeyboardInterrupt:
             return False
 
         if user_confirmation == "Y":
+            print(f"[+] Saving {new_domain_name} as a Zone File ...")
+            # Save the domain name as a new zone file
+            with open(self.new_zone_fpath, "w") as out_file:
+                data = {
+                    new_domain_name: [{
+                        "subdomain": "www",
+                        "data": self.get_rand_ip(),
+                        "type": "A"
+                    }]
+                }
+                out_file.write(json.dumps(data))
+
             self.blockchain.new_transaction(client=UUID, domain_name=new_domain_name,
-                                            zone_file_hash=self.blockchain.generate_sha256(new_zone_file))
+                                            zone_file_hash=self.blockchain.generate_sha256(self.new_zone_fpath))
+            return True
+
+        return False
 
         # TODO Forward transaction to broker then to miner
-        self.client_sock.send(pickle.dumps(self.blockchain.current_transactions))
-
-        return True
+        # self.send_server()
 
     def resolve_domain(self, domain_name):
         """
@@ -258,6 +316,14 @@ class Client(object):
 
         print("[*] IP address does not exist! Have you updated your zone file?")
         return False
+
+    @staticmethod
+    def get_rand_ip():
+        """
+        Generate a random IP address
+        @return: <str> IP Address
+        """
+        return socket.inet_ntoa(struct.pack('>I', random.randint(1, 0xffffffff)))
 
 
 if __name__ == '__main__':

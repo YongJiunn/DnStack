@@ -10,14 +10,14 @@ import socket
 import threading
 import socketserver
 import pandas as pd
-import progressbar
+from functools import reduce
 
 from encryption.RSACipher import *
 from blockchain import Blockchain
 
 # Server Settings
-UUID = "(Server)"
-HOST, PORT = "0.0.0.0", 1339
+UUID = "Server"
+HOST, PORT = "0.0.0.0", 1338
 BUFSIZE = 2048
 
 # Database
@@ -26,12 +26,21 @@ ZONE_DB_DIR = r"database/dns_zone.json"
 
 # Admin
 server_reply = "(Server)"
+SECRET_KEY = r"/home/osboxes/.ssh/dnStack_rsa"
 
-# FLAGS
+# Server Flags
 JOIN = "joined"
 EXIT = "exit"
 ZONE_FILE = "zone_file"
 BLOCKCHAIN = "blockchain"
+NEW_DOMAIN = "new_domain"
+
+# Server Actions
+BROADCAST = "broadcast"
+SELF_INFO = "self"
+
+# Client Flags
+REGIS_DOMAIN = "register_domain".encode()
 
 # client session
 CLIENTS = {"Users": []}
@@ -42,7 +51,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
         # Try catch the error
         try:
             # Get the user_id and public key
-            user_id, self.user_pubkey = pickle.loads(self.request.recv(BUFSIZE))
+            user_id, user_pubkey = pickle.loads(self.request.recv(BUFSIZE))
             self.username = self.get_username(USER_DB_DIR, user_id)
 
             # Info message
@@ -51,38 +60,39 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
             # Add the client session
             CLIENTS["Users"].append({
                 "id": self.request,
-                "name": self.username
+                "name": self.username,
+                "pubkey": user_pubkey
             })
 
             # Send Zone File to the client
-            self.send_client(ZONE_FILE)
+            self.send_client(SELF_INFO, ZONE_FILE)
 
             # Run the message handler to receive client data
             self.message_handle()
 
         # Close the socket if client forcefully close the connection
         except socket.error:
-            self.delete_client()
             self.request.close()
 
-    def send_client(self, flag):
+    def send_client(self, action, flag):
         # Load the RSA Cipher
-        rsa_cipher = RSACipher()
-        client_pubkey = rsa_cipher.importRSAKey(self.user_pubkey)
+        self.rsa_cipher = RSACipher()
+
         # Encryption list for temporary storage
         enc = []
 
         for session in CLIENTS["Users"]:
             client_sess = session['id']
-            client_name = session['name']
+            client_pubkey = self.rsa_cipher.importRSAKey(session['pubkey'])
 
-            if client_sess == self.request:
+            # Peer to Peer communication with only one client
+            if action == SELF_INFO and client_sess == self.request:
                 # Send the zone file over to the client
-                if flag == "zone_file":
+                if flag == ZONE_FILE:
                     # Encrypt the Zone file with RSA Cipher
                     with open(ZONE_DB_DIR, "rb") as in_file:
                         for line in in_file:
-                            ciphertext = rsa_cipher.encrypt_with_RSA(pub_key=client_pubkey, data=line.strip())
+                            ciphertext = self.rsa_cipher.encrypt_with_RSA(pub_key=client_pubkey, data=line.strip())
                             enc.append(ciphertext)
 
                     # Serialize the encrypted data and send to the client
@@ -95,17 +105,45 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                     # Reset the encryption list
                     enc = []
 
+            # Communication to everyone except the requested client request
+            elif action == BROADCAST and client_sess != self.request:
+                # Send message the encrypted domain over to the client
+                if flag == NEW_DOMAIN:
+                    encrypted_domain = self.rsa_cipher.encrypt_with_RSA(pub_key=client_pubkey, data=self.plain_domain)
+                    client_sess.send(pickle.dumps(encrypted_domain))
+                    client_sess.send(NEW_DOMAIN.encode())
+
     def message_handle(self):
+        """ Handles the message between the broker and the client """
+        broker_privkey = self.rsa_cipher.load_privkey(SECRET_KEY)
+
         try:
+            data = b""
             while True:
                 # Receive Client send message
-                self.data = self.request.recv(BUFSIZE)
+                packet = self.request.recv(BUFSIZE)
 
-                if not self.data:
-                    self.delete_client()
+                if not packet:
+                    # self.delete_client()
                     break
 
-                print(self.data)
+                # Register Domain Flag
+                elif REGIS_DOMAIN in packet:
+                    data += packet.rstrip(REGIS_DOMAIN)
+
+                    # Load the encryption data list
+                    enc, current_transaction = pickle.loads(data)
+                    # Decrypt the given encryption list
+                    plaintext = [self.rsa_cipher.decrypt_with_RSA(broker_privkey, ciphertext) for ciphertext in
+                                 enc]
+                    self.plain_domain = b"".join(plaintext)
+                    self.send_client(BROADCAST, NEW_DOMAIN)
+
+                    # Resetting the data buffer
+                    data, packet = b"", b""
+
+                # Concatenate the data together
+                data += packet
 
         except socket.error:
             self.delete_client()
