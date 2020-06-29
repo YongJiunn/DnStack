@@ -98,6 +98,9 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                     msg = (enc, blockchain.chain)
                     client_sess.send(pickle.dumps(msg))
 
+                    # Indicate the end of file
+                    client_sess.send("EOL".encode())
+
                     # Reset the encryption list
                     enc = []
 
