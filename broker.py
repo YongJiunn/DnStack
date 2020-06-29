@@ -57,6 +57,9 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
             # Send Zone File to the client
             self.send_client(ZONE_FILE)
 
+            # Run the message handler to receive client data
+            self.message_handler()
+
 
         # Close the socket if client forcefully close the connection
         except socket.error:
@@ -99,6 +102,17 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                     enc = []
 
                     bar.finish()
+
+    def message_handle(self):
+        try:
+            while True:
+                # Receive Client send message and strip the '\n'
+                self.data = self.request.recv(BUFSIZE)
+                print(self.data)
+
+        except socket.error:
+            self.delete_client()
+            print(f"\n[*] {self.username} left the chat room.".encode())
 
     def delete_client(self):
         # Delete the client in the dictionary list
