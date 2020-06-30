@@ -110,10 +110,12 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
 
                     # Encrypt the Zone file with RSA Cipher
                     with open(DEFAULT_ZONE_DB, "rb") as in_file:
-                        while (byte := in_file.read(1)):
+                        byte = in_file.read(1)
+                        while byte != b"":
                             ciphertext = self.rsa_cipher.encrypt_with_RSA(
                                 pub_key=client_pubkey, data=byte)
                             enc.append(ciphertext)
+                            byte = in_file.read(1)
 
                     # Serialize the encrypted data and send to the client
                     msg = (enc, blockchain.chain)

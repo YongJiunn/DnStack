@@ -90,7 +90,7 @@ class Client(object):
                 elif ZONE_FILE in packet:
                     # Strip the flag
                     data += packet.rstrip(ZONE_FILE)
-
+                    
                     # Load the encrypted data list
                     enc, chain = pickle.loads(data)
 
