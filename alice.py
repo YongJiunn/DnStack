@@ -118,10 +118,8 @@ class Client(object):
                     print("[+] Receiving a new domain zone file")
                     # Strip the flag
                     data += packet.rstrip(NEW_DOMAIN)
-                    # Load the encrypted data
-                    enc = pickle.loads(data)
-                    # Load the json data into a dictionary
-                    new_domain = json.loads(self.rsa_cipher.decrypt_with_RSA(priv_key=privkey, data=enc))
+                    # Load the encrypted data into a dictionary
+                    new_domain = json.loads(self.rsa_cipher.decrypt_with_RSA(priv_key=privkey, data=data))
                     # Extract the domain_name
                     domain_name = list(new_domain.keys())[0]
                     new_domain_zone_fpath = f"client/{UUID}/{domain_name}.json"
