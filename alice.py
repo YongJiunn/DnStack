@@ -27,8 +27,9 @@ BROKER_PUBKEY_DIR = r"client/dnStack.pub"
 # Private Key Directory
 SECRET_KEY = r"secrets/alice_rsa"
 
-# Directory to store Zone File
-ZONE_FILE_DIR = r"client/{}/dns_zone.json".format(UUID)
+# Zone File settings
+DEFAULT_ZONE_FILE = r"client/{}/dns_zone.json".format(UUID)
+ZONE_FILE_DIR = r"client/{}/".format(UUID)
 
 # Flags
 ZONE_FILE = "zone_file".encode()
@@ -94,8 +95,8 @@ class Client(object):
                     enc, chain = pickle.loads(data)
 
                     # Prepare to write zone file contents locally and stored in client/ folder
-                    print(f"[+] Zone file received from Broker, saving under: {ZONE_FILE_DIR}")
-                    with open(ZONE_FILE_DIR, "wb") as out_file:
+                    print(f"[+] Zone file received from Broker, saving under: {DEFAULT_ZONE_FILE}")
+                    with open(DEFAULT_ZONE_FILE, "wb") as out_file:
                         for ciphertext in enc:
                             plaintext = self.rsa_cipher.decrypt_with_RSA(privkey, ciphertext)
                             out_file.write(plaintext)
@@ -178,20 +179,20 @@ class Client(object):
         # Client will be browser/proxy in the future
         while True:
             print(f"\n\t###### Today's Menu ######")
-            # TODO
-            print(f"\t[1] Request for DNS record (Update)")
             print(f"\t[1] Register a new domain")
             print(f"\t[2] Resolve a domain")
             print(f"\t[3] Resolve an IP address")
-            print(f"\t[4] Quit")
+            print(f"\t[4] Request for DNS record (Update)")
+            print(f"\t[5] Quit")
 
             try:
                 user_option = input("\t >  ")
             except KeyboardInterrupt:
-                user_option = "4"
+                user_option = "5"
 
-            if user_option == "4":
+            if user_option == "5":
                 # User wants to quit
+                # TODO actually quit the program, currently will hold until server dies
                 print("\n[!] Bye!")
                 return False
 
@@ -213,6 +214,10 @@ class Client(object):
                 print("[!] Option to resolve IP address chosen")
                 ip_addr = input("[*] Enter IP address to resolve > ")
                 self.resolve_ip(ip_addr)
+            elif user_option == "4":
+                # TODO
+                # User wants to update dns records
+                pass
             else:
                 # User doesn't know what he wants
                 print("[*] Please select an option.")
@@ -230,17 +235,23 @@ class Client(object):
         # Does a check if domain already exists
         print("[+] Checking if domain is taken... Please wait")
 
+        # Checks if domain exists in blockchain
         for block in self.blockchain.chain[1:]:
             # If the domain exists in the blockchain
             if (block["transactions"]["domain_name"]) == new_domain_name:
                 print(f"[*] Domain {new_domain_name} already exists! Please choose another domain.")
                 return False
 
-        # TODO Check local directory of zone files
+        # Checks if domain exists in local directory of zone files
         for filename in os.listdir(ZONE_FILE_DIR):
-            with open(filename, "rb") as in_file:
+            with open(os.path.join(ZONE_FILE_DIR,filename), "rb") as in_file:
                 data = json.loads(in_file.read())
-            print(data)
+
+            for domains in data.keys():
+                if domains == new_domain_name:
+                    print(f"[*] Domain {new_domain_name} already exists! Please choose another domain.")
+                    return False
+
 
         self.new_zone_fpath = f"client/{UUID}/{new_domain_name}.json"
 
@@ -274,9 +285,6 @@ class Client(object):
 
         return False
 
-        # TODO Forward transaction to broker then to miner
-        # self.send_server()
-
     def resolve_domain(self, domain_name):
         """
         Resolves domains
@@ -287,22 +295,29 @@ class Client(object):
         # Locates domain in blockchain
         for block in self.blockchain.chain[1:]:
             # If the domain exists in the blockchain
-            if (block["transactions"][0]["domain_name"]) == domain_name:
-                # TODO Verify the Block before looking up in the zone file
+            if (block["transactions"]["domain_name"]) == domain_name:
                 flag, msg = self.blockchain.verify_block(block)
                 print(msg)
+                zone_file_hash = block["transactions"]["zone_file_hash"]
+                # Checks if blockchain is verified
                 if flag:
-                    # Loads in zone file
-                    with open(ZONE_FILE_DIR, "rb") as in_file:
-                        data = json.loads(in_file.read())
+                    for filename in os.listdir(ZONE_FILE_DIR):
+                        # Retrieves absolute path of filename
+                        abs_path = os.path.join(os.path.abspath(ZONE_FILE_DIR), filename)
+                        # Generates hash of absolute path
+                        abs_path_hash = self.blockchain.generate_sha256(abs_path)
+                        if abs_path_hash == zone_file_hash:
+                            # Loads in zone file
+                            with open(abs_path, "rb") as in_file:
+                                data = json.loads(in_file.read())
 
-                    # Loops through to locate requested domain
-                    for domains in data.keys():
-                        if domains == domain_name:
-                            print("\n\t###### IP Addresses ######")
-                            for i in data[domains]:
-                                print(f"\t{i['type']}\t{i['data']}")
-                            return True
+                            # Loops through to locate requested domain
+                            for domains in data.keys():
+                                if domains == domain_name:
+                                    print("\n\t###### IP Addresses ######")
+                                    for i in data[domains]:
+                                        print(f"\t{i['type']}\t{i['data']}")
+                                    return True
 
         print("[*] Domain does not exist! Have you updated your zone file?")
         return False
@@ -314,17 +329,20 @@ class Client(object):
         @return: Returns True if IP address is resolved, False otherwise
         """
 
-        # Loads in zone file
-        with open(ZONE_FILE_DIR, "rb") as in_file:
-            data = json.loads(in_file.read())
+        for filename in os.listdir(ZONE_FILE_DIR):
+            # Retrieves absolute path of filename
+            abs_path = os.path.join(os.path.abspath(ZONE_FILE_DIR), filename)
+            # Loads in zone file
+            with open(abs_path, "rb") as in_file:
+                data = json.loads(in_file.read())
 
-        # Loops through to locate requested IP address
-        for domain in data.keys():
-            for subdomains in data[domain]:
-                if subdomains["data"] == ip_address:
-                    print("\n\t###### Domain Name ######")
-                    print(f"\t{domain}")
-                    return True
+            # Loops through to locate requested IP address
+            for domain in data.keys():
+                for subdomains in data[domain]:
+                    if subdomains["data"] == ip_address:
+                        print("\n\t###### Domain Name ######")
+                        print(f"\t{domain}")
+                        return True
 
         print("[*] IP address does not exist! Have you updated your zone file?")
         return False

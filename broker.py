@@ -23,7 +23,7 @@ BUFSIZE = 2048
 
 # Database
 USER_DB_DIR = r"database/Users.txt"
-ZONE_DB_DIR = r"database/dns_zone.json"
+DEFAULT_ZONE_DB = r"database/dns_zone.json"
 
 # Admin
 server_reply = "(Server)"
@@ -109,10 +109,10 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                     print(f"\t[+] Sending Zone file to {self.client_name}")
 
                     # Encrypt the Zone file with RSA Cipher
-                    with open(ZONE_DB_DIR, "rb") as in_file:
-                        for line in in_file:
+                    with open(DEFAULT_ZONE_DB, "rb") as in_file:
+                        while (byte := in_file.read(1)):
                             ciphertext = self.rsa_cipher.encrypt_with_RSA(
-                                pub_key=client_pubkey, data=line.strip())
+                                pub_key=client_pubkey, data=byte)
                             enc.append(ciphertext)
 
                     # Serialize the encrypted data and send to the client
@@ -170,9 +170,8 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                     # Initialise client transaction to broker own transaction
                     blockchain.current_transactions.append(client_transaction)
 
-                    # TODO Make use of the current_transaction for MINING Purposes
-
-                    print(f"[*] {self.client_name} has registered for a domain")
+                    print(
+                        f"[*] {self.client_name} has registered for a domain")
                     # Decrypt the given encryption list
                     plaintext = [self.rsa_cipher.decrypt_with_RSA(broker_privkey, ciphertext) for ciphertext in
                                  enc]
@@ -187,22 +186,22 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                     proof, prev_hash = pickle.loads(data)
 
                     if blockchain.valid_proof(prev_hash, proof):
-                        print(f"[*] Proof verified, creating new block {self.client_name}")
+                        print(
+                            f"[*] Proof verified, creating new block {self.client_name}")
 
                         if len(blockchain.current_transactions) == 0:
                             # Creates bogus transaction
-                            blockchain.new_transaction(client="3234739665", domain_name="miner.stack", zone_file_hash=hashlib.sha256(b"miner").hexdigest())
+                            blockchain.new_transaction(
+                                client="3234739665", domain_name="miner.stack", zone_file_hash=hashlib.sha256(b"miner").hexdigest())
 
                         # Creates new block
-                        blockchain.new_block(proof=proof, previous_hash=prev_hash)
+                        blockchain.new_block(
+                            proof=proof, previous_hash=prev_hash)
 
                         self.send_client(SELF_INFO, MINER)
 
                     # Resetting the data buffer
                     data, packet = b"", b""
-
-                # TODO handle request
-                # elif
 
                 # Concatenate the data together
                 data += packet
@@ -238,13 +237,13 @@ class ThreadedServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
 def construct_blockchain(bc):
     """ Construct the Blockchain from the Zone File """
     # Open the Zone File and load it
-    with open(ZONE_DB_DIR, "rb") as in_file:
+    with open(DEFAULT_ZONE_DB, "rb") as in_file:
         data = json.loads(in_file.read())
 
     for domain_name in data.keys():
         bc.new_transaction(client=UUID,
                            domain_name=domain_name,
-                           zone_file_hash=bc.generate_sha256(ZONE_DB_DIR))
+                           zone_file_hash=bc.generate_sha256(DEFAULT_ZONE_DB))
 
         # Does Proof of Work
         last_block = bc.last_block
