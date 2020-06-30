@@ -72,6 +72,7 @@ class Blockchain(object):
         """
         Verifies that the blockchain is authentic. Ensures equation is True.
         Equation: Previous hash * proof = 0000......
+        @param chain: <list> Given Blockchain
         @return: Returns True if blockchain is verified, False otherwise
         """
         last_block = chain[1]
@@ -92,6 +93,17 @@ class Blockchain(object):
             current_index += 1
 
         return (True, "[*] Blockchain verified successfully")
+
+    def verify_block(self, block):
+        """
+        Verifies that the given Block is authentic
+        @param block: <json> Given block
+        @return: <bool>
+        """
+        if not self.valid_proof(block['previous_hash'], block['proof']):
+            return (False, "[!] Error in Block! Do not visit any domains until you can update your zone file")
+
+        return (True, "[*] Block verified successfully")
 
     @staticmethod
     def valid_proof(previous_hash, proof):

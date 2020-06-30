@@ -276,21 +276,24 @@ class Client(object):
         """
 
         # Locates domain in blockchain
-        for i in self.blockchain.chain[1:]:
+        for block in self.blockchain.chain[1:]:
             # If the domain exists in the blockchain
-            if (i["transactions"][0]["domain_name"]) == domain_name:
+            if (block["transactions"][0]["domain_name"]) == domain_name:
+                # TODO Verify the Block before looking up in the zone file
+                flag, msg = self.blockchain.verify_block(block)
+                print(msg)
+                if flag:
+                    # Loads in zone file
+                    with open(ZONE_FILE_DIR, "rb") as in_file:
+                        data = json.loads(in_file.read())
 
-                # Loads in zone file
-                with open(ZONE_FILE_DIR, "rb") as in_file:
-                    data = json.loads(in_file.read())
-
-                # Loops through to locate requested domain
-                for domains in data.keys():
-                    if domains == domain_name:
-                        print("\n\t###### IP Addresses ######")
-                        for i in data[domains]:
-                            print(f"\t{i['type']}\t{i['data']}")
-                        return True
+                    # Loops through to locate requested domain
+                    for domains in data.keys():
+                        if domains == domain_name:
+                            print("\n\t###### IP Addresses ######")
+                            for i in data[domains]:
+                                print(f"\t{i['type']}\t{i['data']}")
+                            return True
 
         print("[*] Domain does not exist! Have you updated your zone file?")
         return False

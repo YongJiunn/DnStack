@@ -123,6 +123,10 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                     client_sess.send(pickle.dumps(encrypted_domain))
                     client_sess.send(NEW_DOMAIN.encode())
 
+            # Miner sending part
+            else:
+                pass
+
     def message_handle(self):
         """ Handles the message between the broker and the client """
         broker_privkey = self.rsa_cipher.load_privkey(SECRET_KEY)
@@ -141,7 +145,11 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                 elif REGIS_DOMAIN in packet:
                     data += packet.rstrip(REGIS_DOMAIN)
                     # Load the encryption data list
-                    enc, current_transaction = pickle.loads(data)
+                    enc, client_transaction = pickle.loads(data)
+
+                    # Initialise client transaction to broker own transaction
+                    blockchain.current_transactions.append(client_transaction)
+
                     # TODO Make use of the current_transaction for MINING Purposes
 
                     print(f"[*] {self.client_name} has registered for a domain")
@@ -175,6 +183,10 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
         # Check whether the user_id exist in the ID column of dataframe
         if user_id in map(lambda x: str(x), user_df.id.values):
             return user_df.loc[user_df.id.isin([user_id])].name.to_string(index=False).lstrip()
+
+    @staticmethod
+    def construct_block():
+        return
 
 
 class ThreadedServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
