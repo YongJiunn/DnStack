@@ -25,7 +25,7 @@ CLIENT_PUBKEY_DIR = r"client/alice.pub"
 BROKER_PUBKEY_DIR = r"client/dnStack.pub"
 
 # Private Key Directory
-SECRET_KEY = r"/home/osboxes/.ssh/alice_rsa"
+SECRET_KEY = r"secrets/alice_rsa"
 
 # Directory to store Zone File
 ZONE_FILE_DIR = r"client/{}/dns_zone.json".format(UUID)
@@ -92,6 +92,7 @@ class Client(object):
 
                     # Load the encrypted data list
                     enc, chain = pickle.loads(data)
+
                     # Prepare to write zone file contents locally and stored in client/ folder
                     print(f"[+] Zone file received from Broker, saving under: {ZONE_FILE_DIR}")
                     with open(ZONE_FILE_DIR, "wb") as out_file:
@@ -160,6 +161,8 @@ class Client(object):
             # Send REGIS_DOMAIN flag to indicate EOL
             self.client_sock.send(REGIS_DOMAIN.encode())
 
+            self.blockchain.current_transactions = []
+
     @staticmethod
     def get_pubkey(pubkey_dir):
         """
@@ -175,7 +178,8 @@ class Client(object):
         # Client will be browser/proxy in the future
         while True:
             print(f"\n\t###### Today's Menu ######")
-            # print(f"\t[1] Request for DNS record (Update)")
+            # TODO
+            print(f"\t[1] Request for DNS record (Update)")
             print(f"\t[1] Register a new domain")
             print(f"\t[2] Resolve a domain")
             print(f"\t[3] Resolve an IP address")
@@ -225,11 +229,18 @@ class Client(object):
 
         # Does a check if domain already exists
         print("[+] Checking if domain is taken... Please wait")
+
         for block in self.blockchain.chain[1:]:
             # If the domain exists in the blockchain
-            if (block["transactions"][0]["domain_name"]) == new_domain_name:
+            if (block["transactions"]["domain_name"]) == new_domain_name:
                 print(f"[*] Domain {new_domain_name} already exists! Please choose another domain.")
                 return False
+
+        # TODO Check local directory of zone files
+        for filename in os.listdir(ZONE_FILE_DIR):
+            with open(filename, "rb") as in_file:
+                data = json.loads(in_file.read())
+            print(data)
 
         self.new_zone_fpath = f"client/{UUID}/{new_domain_name}.json"
 

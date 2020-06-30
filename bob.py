@@ -25,7 +25,7 @@ CLIENT_PUBKEY_DIR = r"client/bob.pub"
 BROKER_PUBKEY_DIR = r"client/dnStack.pub"
 
 # Private Key Directory
-SECRET_KEY = r"/home/osboxes/.ssh/bob_rsa"
+SECRET_KEY = r"secrets/bob_rsa"
 
 # Directory to store Zone File
 ZONE_FILE_DIR = r"client/{}/dns_zone.json".format(UUID)
@@ -160,6 +160,8 @@ class Client(object):
             # Send REGIS_DOMAIN flag to indicate EOL
             self.client_sock.send(REGIS_DOMAIN.encode())
 
+            self.blockchain.current_transactions = []
+
     @staticmethod
     def get_pubkey(pubkey_dir):
         """
@@ -227,7 +229,7 @@ class Client(object):
         print("[+] Checking if domain is taken... Please wait")
         for block in self.blockchain.chain[1:]:
             # If the domain exists in the blockchain
-            if (block["transactions"][0]["domain_name"]) == new_domain_name:
+            if (block["transactions"]["domain_name"]) == new_domain_name:
                 print(f"[*] Domain {new_domain_name} already exists! Please choose another domain.")
                 return False
 
@@ -276,7 +278,7 @@ class Client(object):
         # Locates domain in blockchain
         for block in self.blockchain.chain[1:]:
             # If the domain exists in the blockchain
-            if (block["transactions"][0]["domain_name"]) == domain_name:
+            if (block["transactions"]["domain_name"]) == domain_name:
                 # TODO Verify the Block before looking up in the zone file
                 flag, msg = self.blockchain.verify_block(block)
                 print(msg)

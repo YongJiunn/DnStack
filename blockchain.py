@@ -12,7 +12,7 @@ from time import time
 class Blockchain(object):
     def __init__(self):
         self.chain = []
-        self.current_transactions = []
+        self.current_transactions = [{}]
 
         # Create the genesis block
         self.new_block(previous_hash=1, proof=100)
@@ -24,19 +24,21 @@ class Blockchain(object):
         :param previous_hash: (Optional) <str> Hash of previous Block
         :return: <dict> New Block
         """
-        block = {
-            'index': len(self.chain) + 1,
-            'timestamp': time(),
-            'transactions': self.current_transactions,
-            'proof': proof,
-            'previous_hash': previous_hash or self.block_hash(self.chain[-1]),
-        }
+
+        for transaction in self.current_transactions:
+            block = {
+                'index': len(self.chain) + 1,
+                'timestamp': time(),
+                'transactions': transaction,
+                'proof': proof,
+                'previous_hash': previous_hash or self.block_hash(self.chain[-1]),
+            }
+
+            self.chain.append(block)
 
         # Reset the current list of transactions
         self.current_transactions = []
 
-        self.chain.append(block)
-        return block
 
     def new_transaction(self, client, domain_name, zone_file_hash):
         """
@@ -115,7 +117,8 @@ class Blockchain(object):
         """
         # guess_hash = hashlib.sha256(f'{previous_hash * proof}'.encode()).hexdigest()
         # TODO This is a temp POW, faster for testing purposes
-        guess_hash = hashlib.sha256(f'{previous_hash} * {proof}'.encode()).hexdigest()
+        guess_hash = hashlib.sha256(
+            f'{previous_hash} * {proof}'.encode()).hexdigest()
         return guess_hash[:4] == "0000"
 
     @staticmethod

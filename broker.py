@@ -1,12 +1,13 @@
 """
 Broker Script
 
-Author @ Zhao Yea 
+Author @ Zhao Yea
 """
 
 import json
 import pickle
 import socket
+import hashlib
 import threading
 import socketserver
 import pandas as pd
@@ -26,7 +27,7 @@ ZONE_DB_DIR = r"database/dns_zone.json"
 
 # Admin
 server_reply = "(Server)"
-SECRET_KEY = r"/home/osboxes/.ssh/dnStack_rsa"
+SECRET_KEY = r"secrets\dnStack_rsa"
 
 # Server Flags
 JOIN = "joined"
@@ -34,6 +35,7 @@ EXIT = "exit"
 ZONE_FILE = "zone_file"
 BLOCKCHAIN = "blockchain"
 NEW_DOMAIN = "new_domain"
+MINER = "miner"
 
 # Server Actions
 BROADCAST = "broadcast"
@@ -41,6 +43,7 @@ SELF_INFO = "self"
 
 # Client Flags
 REGIS_DOMAIN = "register_domain".encode()
+MINER_PROOF = "miner".encode()
 
 # client session
 CLIENTS = {"Users": []}
@@ -64,8 +67,12 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                 "pubkey": user_pubkey
             })
 
-            # Send Zone File to the client
-            self.send_client(SELF_INFO, ZONE_FILE)
+            if self.username == "miner":
+                # Send previous hash to miner
+                self.send_client(SELF_INFO, MINER)
+            else:
+                # Send Zone File to the client
+                self.send_client(SELF_INFO, ZONE_FILE)
 
             # Run the message handler to receive client data
             self.message_handle()
@@ -86,11 +93,14 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
 
         # Encryption list for temporary storage
         enc = []
+
         # Iterate through the CLIENTS session
         for session in CLIENTS["Users"]:
             client_sess = session['id']
             self.client_name = session['name']
-            client_pubkey = self.rsa_cipher.importRSAKey(session['pubkey'])
+
+            if self.client_name != "miner":
+                client_pubkey = self.rsa_cipher.importRSAKey(session['pubkey'])
 
             # Peer to Peer communication with only one client
             if action == SELF_INFO and client_sess == self.request:
@@ -101,7 +111,8 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                     # Encrypt the Zone file with RSA Cipher
                     with open(ZONE_DB_DIR, "rb") as in_file:
                         for line in in_file:
-                            ciphertext = self.rsa_cipher.encrypt_with_RSA(pub_key=client_pubkey, data=line.strip())
+                            ciphertext = self.rsa_cipher.encrypt_with_RSA(
+                                pub_key=client_pubkey, data=line.strip())
                             enc.append(ciphertext)
 
                     # Serialize the encrypted data and send to the client
@@ -113,30 +124,39 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
 
                     # Reset the encryption list
                     enc = []
+                elif flag == MINER:
+                    print("[*] Sending hash to miner")
+                    # Gets the last block hash
+                    last_block_hash = (
+                        blockchain.block_hash(blockchain.chain[-1]))
+
+                    # Sends last block hash to miner
+                    client_sess.send(last_block_hash.encode())
+
+                    # Sends Miner flag to indicate EOL
+                    client_sess.send(MINER.encode())
 
             # Communication to everyone except the requested client request
-            elif action == BROADCAST and client_sess != self.request:
+            elif action == BROADCAST and client_sess != self.request and self.client_name != "miner":
                 # Send message the encrypted domain over to the client
                 if flag == NEW_DOMAIN:
-                    encrypted_domain = self.rsa_cipher.encrypt_with_RSA(pub_key=client_pubkey, data=self.plain_domain)
-                    print(f"\t[+] Forwarding Domain information to: {self.client_name}")
-                    client_sess.send(pickle.dumps(encrypted_domain))
+                    encrypted_domain = self.rsa_cipher.encrypt_with_RSA(
+                        pub_key=client_pubkey, data=self.plain_domain)
+                    print(
+                        f"\t[+] Forwarding Domain information to: {self.client_name}")
+                    client_sess.send(encrypted_domain)
                     client_sess.send(NEW_DOMAIN.encode())
-
-            # Miner sending part
-            else:
-                pass
 
     def message_handle(self):
         """ Handles the message between the broker and the client """
-        broker_privkey = self.rsa_cipher.load_privkey(SECRET_KEY)
+        if self.client_name != "miner":
+            broker_privkey = self.rsa_cipher.load_privkey(SECRET_KEY)
 
         try:
             data = b""
             while True:
                 # Receive Client send message
                 packet = self.request.recv(BUFSIZE)
-
                 if not packet:
                     # self.delete_client()
                     break
@@ -161,6 +181,28 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
 
                     # Resetting the data buffer
                     data, packet = b"", b""
+
+                elif MINER_PROOF in packet:
+                    data += packet.rstrip(MINER_PROOF)
+                    proof, prev_hash = pickle.loads(data)
+
+                    if blockchain.valid_proof(prev_hash, proof):
+                        print(f"[*] Proof verified, creating new block {self.client_name}")
+
+                        if len(blockchain.current_transactions) == 0:
+                            # Creates bogus transaction
+                            blockchain.new_transaction(client="3234739665", domain_name="miner.stack", zone_file_hash=hashlib.sha256(b"miner").hexdigest())
+
+                        # Creates new block
+                        blockchain.new_block(proof=proof, previous_hash=prev_hash)
+
+                        self.send_client(SELF_INFO, MINER)
+
+                    # Resetting the data buffer
+                    data, packet = b"", b""
+
+                # TODO handle request
+                # elif
 
                 # Concatenate the data together
                 data += packet
