@@ -16,7 +16,7 @@ from encryption.RSACipher import *
 from blockchain import Blockchain
 
 UUID = "4226355408"
-HOST, PORT = "localhost", 1338
+HOST, PORT = "localhost", 1339
 BUFSIZE = 1024
 CACHE_SITES = []
 
@@ -279,7 +279,8 @@ class Client(object):
                 }
                 out_file.write(json.dumps(data))
 
-            self.blockchain.new_transaction(client=UUID, domain_name=new_domain_name,
+            self.blockchain.new_transaction(client=UUID,
+                                            domain_name=new_domain_name,
                                             zone_file_hash=self.blockchain.generate_sha256(self.new_zone_fpath))
             return True
 

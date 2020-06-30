@@ -18,7 +18,7 @@ from blockchain import Blockchain
 
 # Server Settings
 UUID = "Server"
-HOST, PORT = "0.0.0.0", 1338
+HOST, PORT = "0.0.0.0", 1339
 BUFSIZE = 2048
 
 # Database
@@ -112,8 +112,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                     with open(DEFAULT_ZONE_DB, "rb") as in_file:
                         byte = in_file.read(1)
                         while byte != b"":
-                            ciphertext = self.rsa_cipher.encrypt_with_RSA(
-                                pub_key=client_pubkey, data=byte)
+                            ciphertext = self.rsa_cipher.encrypt_with_RSA(pub_key=client_pubkey, data=byte)
                             enc.append(ciphertext)
                             byte = in_file.read(1)
 
@@ -126,11 +125,12 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
 
                     # Reset the encryption list
                     enc = []
+
+                # MINER Flag Handler
                 elif flag == MINER:
                     print("[*] Sending hash to miner")
                     # Gets the last block hash
-                    last_block_hash = (
-                        blockchain.block_hash(blockchain.chain[-1]))
+                    last_block_hash = (blockchain.block_hash(blockchain.chain[-1]))
 
                     # Sends last block hash to miner
                     client_sess.send(last_block_hash.encode())
@@ -142,10 +142,8 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
             elif action == BROADCAST and client_sess != self.request and self.client_name != "miner":
                 # Send message the encrypted domain over to the client
                 if flag == NEW_DOMAIN:
-                    encrypted_domain = self.rsa_cipher.encrypt_with_RSA(
-                        pub_key=client_pubkey, data=self.plain_domain)
-                    print(
-                        f"\t[+] Forwarding Domain information to: {self.client_name}")
+                    encrypted_domain = self.rsa_cipher.encrypt_with_RSA(pub_key=client_pubkey, data=self.plain_domain)
+                    print(f"\t[+] Forwarding Domain information to: {self.client_name}")
                     client_sess.send(encrypted_domain)
                     client_sess.send(NEW_DOMAIN.encode())
 
@@ -172,11 +170,9 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                     # Initialise client transaction to broker own transaction
                     blockchain.current_transactions.append(client_transaction)
 
-                    print(
-                        f"[*] {self.client_name} has registered for a domain")
+                    print(f"[*] {self.client_name} has registered for a domain")
                     # Decrypt the given encryption list
-                    plaintext = [self.rsa_cipher.decrypt_with_RSA(broker_privkey, ciphertext) for ciphertext in
-                                 enc]
+                    plaintext = [self.rsa_cipher.decrypt_with_RSA(broker_privkey, ciphertext) for ciphertext in enc]
                     self.plain_domain = b"".join(plaintext)
                     self.send_client(BROADCAST, NEW_DOMAIN)
 
@@ -193,12 +189,12 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
 
                         if len(blockchain.current_transactions) == 0:
                             # Creates bogus transaction
-                            blockchain.new_transaction(
-                                client="3234739665", domain_name="miner.stack", zone_file_hash=hashlib.sha256(b"miner").hexdigest())
+                            blockchain.new_transaction(client="3234739665",
+                                                       domain_name="miner.stack",
+                                                       zone_file_hash=hashlib.sha256(b"miner").hexdigest())
 
                         # Creates new block
-                        blockchain.new_block(
-                            proof=proof, previous_hash=prev_hash)
+                        blockchain.new_block(proof=proof, previous_hash=prev_hash)
 
                         self.send_client(SELF_INFO, MINER)
 

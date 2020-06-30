@@ -16,7 +16,7 @@ from encryption.RSACipher import *
 from blockchain import Blockchain
 
 UUID = "2112200367"
-HOST, PORT = "localhost", 1338
+HOST, PORT = "localhost", 1339
 BUFSIZE = 1024
 CACHE_SITES = []
 
