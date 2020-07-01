@@ -11,6 +11,7 @@ import socket
 import random
 import struct
 import threading
+import pandas as pd
 
 from encryption.RSACipher import *
 from blockchain import Blockchain
@@ -27,11 +28,11 @@ BROKER_PUBKEY_DIR = r"client/dnStack.pub"
 # Private Key Directory
 SECRET_KEY = r"secrets/alice_rsa"
 
-# Zone File settings
+# Directory to store Zone File
 DEFAULT_ZONE_FILE = r"client/{}/dns_zone.json".format(UUID)
-ZONE_FILE_DIR = r"client/{}/".format(UUID)
+ZONE_FILE_DIR = r"client/{}".format(UUID)
 
-# Flags
+# Server Flags
 ZONE_FILE = "zone_file".encode()
 NEW_DOMAIN = "new_domain".encode()
 
@@ -52,22 +53,23 @@ class Client(object):
         self.blockchain = Blockchain()
 
         # Initialise socket
-        self.client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            self.client_sock = sock    
+            
+            # Connects to broker
+            try:
+                self.client_sock.connect((host, port))
 
-        # Connects to broker
-        try:
-            self.client_sock.connect((host, port))
+            except socket.error:
+                print("[!] Connection failed! Please check your network connectivity and try again.")
+                self.client_sock.close()
 
-        except socket.error:
-            print("[!] Connection failed! Please check your network connectivity and try again.")
-            self.client_sock.close()
+            # Send client pubkey over to server on initial connection
+            server_hello_msg = (UUID, self.get_pubkey(CLIENT_PUBKEY_DIR))
+            self.client_sock.sendall(pickle.dumps(server_hello_msg))
 
-        # Send client pubkey over to server on initial connection
-        server_hello_msg = (UUID, self.get_pubkey(CLIENT_PUBKEY_DIR))
-        self.client_sock.send(pickle.dumps(server_hello_msg))
-
-        # Run the message_handle
-        self.message_handle()
+            # Run the message_handle
+            self.message_handle()
 
     def message_handle(self):
         """ Handles the message between server and client """
@@ -90,9 +92,12 @@ class Client(object):
                 elif ZONE_FILE in packet:
                     # Strip the flag
                     data += packet.rstrip(ZONE_FILE)
-                    
+
                     # Load the encrypted data list
                     enc, chain = pickle.loads(data)
+
+                    # Reset the data buffer
+                    data, packet = b"", b""
 
                     # Prepare to write zone file contents locally and stored in client/ folder
                     print(f"[+] Zone file received from Broker, saving under: {DEFAULT_ZONE_FILE}")
@@ -102,19 +107,14 @@ class Client(object):
                             out_file.write(plaintext)
 
                     # Verify the given blockchain
-                    flag, msg = self.blockchain.verify_blockchain(chain)
-                    print(msg)
-
-                    if flag:
+                    if self.blockchain.verify_blockchain(chain):                    
                         # Update the client Blockchain
                         self.blockchain.chain = chain
 
                         # Run the user_menu
                         threading.Thread(target=self.user_menu).start()
 
-                    # Reset the data buffer
-                    data, packet = b"", b""
-
+                    
                 # NEW DOMAIN File Handler
                 elif NEW_DOMAIN in packet:
                     print("[+] Receiving a new domain zone file")
@@ -122,6 +122,10 @@ class Client(object):
                     data += packet.rstrip(NEW_DOMAIN)
                     # Load the encrypted data into a dictionary
                     new_domain = json.loads(self.rsa_cipher.decrypt_with_RSA(priv_key=privkey, data=data))
+
+                    # Reset the data buffer
+                    data, packet = b"", b""
+
                     # Extract the domain_name
                     domain_name = list(new_domain.keys())[0]
                     new_domain_zone_fpath = f"client/{UUID}/{domain_name}.json"
@@ -131,10 +135,9 @@ class Client(object):
                     with open(new_domain_zone_fpath, "w") as out_file:
                         out_file.write(json.dumps(new_domain))
 
-                    # Reset the data buffer
-                    data, packet = b"", b""
+                    
 
-                    # Concatenate the data
+                # Concatenate the data
                 data += packet
 
         except KeyboardInterrupt:
@@ -150,19 +153,21 @@ class Client(object):
 
         if flag == REGIS_DOMAIN:
             with open(self.new_zone_fpath, "rb") as in_file:
-                for line in in_file:
-                    ciphertext = self.rsa_cipher.encrypt_with_RSA(pub_key=pubkey, data=line.strip())
+                byte = in_file.read(1)
+                while byte != b"":
+                    ciphertext = self.rsa_cipher.encrypt_with_RSA(pub_key=pubkey, data=byte)
                     enc.append(ciphertext)
+                    byte = in_file.read(1)
 
             print("[+] Forwarding new zone file and transaction block to Broker ...")
             # Serialize the encrypted data and send to the client
             msg = (enc, self.blockchain.current_transactions)
-            self.client_sock.send(pickle.dumps(msg))
+            self.client_sock.sendall(pickle.dumps(msg))
 
             # Send REGIS_DOMAIN flag to indicate EOL
-            self.client_sock.send(REGIS_DOMAIN.encode())
+            self.client_sock.sendall(REGIS_DOMAIN.encode())
 
-            self.blockchain.current_transactions = []
+            enc, self.blockchain.current_transactions = [], []
 
     @staticmethod
     def get_pubkey(pubkey_dir):
@@ -192,8 +197,8 @@ class Client(object):
 
             if user_option == "5":
                 # User wants to quit
-                # TODO actually quit the program, currently will hold until server dies
                 print("\n[!] Bye!")
+                self.client_sock.close()
                 return False
 
             elif user_option == "1":
@@ -234,8 +239,6 @@ class Client(object):
 
         # Does a check if domain already exists
         print("[+] Checking if domain is taken... Please wait")
-
-        # Checks if domain exists in blockchain
         for block in self.blockchain.chain[1:]:
             # If the domain exists in the blockchain
             if (block["transactions"]["domain_name"]) == new_domain_name:
@@ -244,14 +247,13 @@ class Client(object):
 
         # Checks if domain exists in local directory of zone files
         for filename in os.listdir(ZONE_FILE_DIR):
-            with open(os.path.join(ZONE_FILE_DIR,filename), "rb") as in_file:
+            with open(os.path.join(ZONE_FILE_DIR, filename), "rb") as in_file:
                 data = json.loads(in_file.read())
 
             for domains in data.keys():
                 if domains == new_domain_name:
                     print(f"[*] Domain {new_domain_name} already exists! Please choose another domain.")
                     return False
-
 
         self.new_zone_fpath = f"client/{UUID}/{new_domain_name}.json"
 
@@ -279,8 +281,7 @@ class Client(object):
                 }
                 out_file.write(json.dumps(data))
 
-            self.blockchain.new_transaction(client=UUID,
-                                            domain_name=new_domain_name,
+            self.blockchain.new_transaction(client=UUID, domain_name=new_domain_name,
                                             zone_file_hash=self.blockchain.generate_sha256(self.new_zone_fpath))
             return True
 
@@ -293,32 +294,35 @@ class Client(object):
         @return: Returns True if domain is resolved, False otherwise
         """
 
-        # Locates domain in blockchain
-        for block in self.blockchain.chain[1:]:
-            # If the domain exists in the blockchain
-            if (block["transactions"]["domain_name"]) == domain_name:
-                flag, msg = self.blockchain.verify_block(block)
-                print(msg)
-                zone_file_hash = block["transactions"]["zone_file_hash"]
-                # Checks if blockchain is verified
-                if flag:
-                    for filename in os.listdir(ZONE_FILE_DIR):
-                        # Retrieves absolute path of filename
-                        abs_path = os.path.join(os.path.abspath(ZONE_FILE_DIR), filename)
-                        # Generates hash of absolute path
-                        abs_path_hash = self.blockchain.generate_sha256(abs_path)
-                        if abs_path_hash == zone_file_hash:
-                            # Loads in zone file
-                            with open(abs_path, "rb") as in_file:
-                                data = json.loads(in_file.read())
+        # TODO Locates domain in CACHE_SITES first
 
-                            # Loops through to locate requested domain
-                            for domains in data.keys():
-                                if domains == domain_name:
-                                    print("\n\t###### IP Addresses ######")
-                                    for i in data[domains]:
-                                        print(f"\t{i['type']}\t{i['data']}")
-                                    return True
+        # Create the blockchain DataFrame
+        df = pd.DataFrame(self.blockchain.chain[1:])
+
+        # Extract the Block that contains the domain name
+        block = df.loc[df['transactions'].apply(lambda x: x["domain_name"] == domain_name)] \
+            .to_dict(orient="records")[0]
+
+        zone_file_hash = block["transactions"]["zone_file_hash"]
+
+        if self.blockchain.verify_block(block):
+            for fname in os.listdir(ZONE_FILE_DIR):
+                # Retrieves absolute path of filename
+                abs_path = os.path.join(os.path.abspath(ZONE_FILE_DIR), fname)
+                # Generates hash of absolute path
+                abs_path_hash = self.blockchain.generate_sha256(abs_path)
+                if abs_path_hash == zone_file_hash:
+                    # Loads in zone file
+                    with open(abs_path, "rb") as in_file:
+                        data = json.loads(in_file.read())
+
+                    # Loops through to locate requested domain
+                    for domains in data.keys():
+                        if domains == domain_name:
+                            print("\n\t###### IP Addresses ######")
+                            for i in data[domains]:
+                                print(f"\t{i['type']}\t{i['data']}")
+                            return True
 
         print("[*] Domain does not exist! Have you updated your zone file?")
         return False
@@ -359,8 +363,8 @@ class Client(object):
 
 if __name__ == '__main__':
     # Create directory if it does not exist
-    if not os.path.exists(os.path.dirname(ZONE_FILE_DIR)):
-        os.mkdir(os.path.dirname(ZONE_FILE_DIR))
+    if not os.path.exists(os.path.dirname(DEFAULT_ZONE_FILE)):
+        os.mkdir(os.path.dirname(DEFAULT_ZONE_FILE))
 
     # Run the client connection with the broker
     Client(HOST, PORT)

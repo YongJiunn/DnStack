@@ -10,7 +10,7 @@ import pickle
 import hashlib
 
 UUID = "3234739665"
-HOST, PORT = "localhost", 1338
+HOST, PORT = "localhost", 1339
 BUFSIZE = 2048
 MINER = "miner".encode()
 
@@ -31,7 +31,10 @@ class Miners(object):
 
     def request_hash(self, host, port):
         """
-
+        Initiate Connection to Broker
+        @param host: IP address of Broker
+        @param port: Port of Broker
+        @return: NIL
         """
 
         print(f"[*] Connecting to Broker @ ({host},{port})")
@@ -43,14 +46,12 @@ class Miners(object):
         try:
             self.client_sock.connect((host, port))
         except ConnectionRefusedError:
-            print(
-                f"[!] Connection failed! Please check your network connectivity and try again.")
+            print(f"[!] Connection failed! Please check your network connectivity and try again.")
             return False
 
         # Send client pubkey over to server on initial connection
         server_hello_msg = (UUID, "")
         self.client_sock.send(pickle.dumps(server_hello_msg))
-
 
     def message_handle(self):
         """ Handles the message between the broker and the client """
@@ -67,7 +68,7 @@ class Miners(object):
             elif MINER in packet:
                 data += packet.rstrip(MINER)
                 prev_hash = data.decode()
-                data,packet = b"", b""
+                data, packet = b"", b""
 
                 # Start mining for proof
                 proof = str(self.proof_of_work(prev_hash))
@@ -81,7 +82,6 @@ class Miners(object):
 
             # Concatenate the data together
             data += packet
-
 
     def proof_of_work(self, previous_hash):
         """
@@ -107,6 +107,7 @@ class Miners(object):
         # TODO This is a temp POW, faster for testing purposes
         guess_hash = hashlib.sha256(f'{previous_hash} * {proof}'.encode()).hexdigest()
         return guess_hash[:4] == "0000"
+
 
 if __name__ == "__main__":
     miner = Miners(HOST, PORT)

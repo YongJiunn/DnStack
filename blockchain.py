@@ -39,7 +39,6 @@ class Blockchain(object):
         # Reset the current list of transactions
         self.current_transactions = []
 
-
     def new_transaction(self, client, domain_name, zone_file_hash):
         """
         Creates a new chunk of data to go into the our Block chain
@@ -85,16 +84,19 @@ class Blockchain(object):
 
             # Check the hash of the block is correct
             if block['previous_hash'] != self.block_hash(last_block):
-                return (False, "[!] Error in blockchain! Do not visit any domains until you can update your zone file")
+                print("[!] Error in blockchain! Do not visit any domains until you can update your zone file")
+                return False
 
             # Check that the Proof of Work is correct:
             if not self.valid_proof(last_block['previous_hash'], last_block['proof']):
-                return (False, "[!] Error in blockchain! Do not visit any domains until you can update your zone file")
+                print("[!] Error in blockchain! Do not visit any domains until you can update your zone file")
+                return False
 
             last_block = block
             current_index += 1
 
-        return (True, "[*] Blockchain verified successfully")
+        print("[*] Blockchain verified successfully")
+        return True
 
     def verify_block(self, block):
         """
@@ -103,9 +105,11 @@ class Blockchain(object):
         @return: <bool>
         """
         if not self.valid_proof(block['previous_hash'], block['proof']):
-            return (False, "[!] Error in Block! Do not visit any domains until you can update your zone file")
+            print("[!] Error in Block! Do not visit any domains until you can update your zone file")
+            return False
 
-        return (True, "[*] Block verified successfully")
+        print("[*] Block verified successfully")
+        return True
 
     @staticmethod
     def valid_proof(previous_hash, proof):
