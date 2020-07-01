@@ -125,7 +125,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
             client_sess.sendall(CONSENSUS)
 
         elif flag == NEW_DOMAIN:
-            recipient_df = CLIENT_DF.loc[(CLIENT_DF['id'] != self.request) & (CLIENT_DF['client_name'] != MINER)]
+            recipient_df = CLIENT_DF.loc[(CLIENT_DF['id'] != self.request) & (CLIENT_DF['client_name'] != MINER.decode())]
             if not recipient_df.empty:
                 for items in recipient_df[['id', 'pubkey']].values:
                     # Import the Public Key
@@ -153,7 +153,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
 
     def message_handle(self):
         """ Handles the message between the broker and the client """
-        if self.username != MINER:
+        if self.username != MINER.decode():
             broker_privkey = self.rsa_cipher.load_privkey(SECRET_KEY)
 
         try:
@@ -228,7 +228,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
         # Delete the client in the dictionary list
         CLIENT_DF.drop(CLIENT_DF.loc[CLIENT_DF['id'] == self.request].index, inplace=True)
         self.request.close()
-        print(f"[*] {self.username} left the chat room.")
+        print(f"[*] {self.username} has been disconnected.")
 
     @staticmethod
     def get_username(user_db, user_id):
