@@ -182,7 +182,7 @@ class Client(object):
                 while (byte := in_file.read(1)):
                     ciphertext = self.rsa_cipher.encrypt_with_RSA(pub_key=pubkey, data=byte)
                     enc.append(ciphertext)
-                    byte = in_file.read(1)
+
 
             print("[+] Forwarding new zone file and transaction block to Broker ...")
             # Serialize the encrypted data and send to the client

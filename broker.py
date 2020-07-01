@@ -114,7 +114,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                             # Encrypt the Zone file with RSA Cipher
                             ciphertext = self.rsa_cipher.encrypt_with_RSA(pub_key=client_pubkey, data=byte)
                             enc.append(ciphertext)
-                            byte = in_file.read(1)
+
 
                     # Serialize the encrypted data and send to the client
                     msg = (enc, blockchain.chain)
@@ -146,7 +146,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                             # Encrypt the Zone file with RSA Cipher
                             ciphertext = self.rsa_cipher.encrypt_with_RSA(pub_key=client_pubkey, data=byte)
                             enc.append(ciphertext)
-                            byte = in_file.read(1)
+
 
                     # Serialize the encrypted data and send to the client
                     message = (enc, blockchain.chain)

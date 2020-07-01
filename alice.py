@@ -182,7 +182,7 @@ class Client(object):
                 while (byte := in_file.read(1)):
                     ciphertext = self.rsa_cipher.encrypt_with_RSA(pub_key=pubkey, data=byte)
                     enc.append(ciphertext)
-                    byte = in_file.read(1)
+
 
             print("[+] Forwarding new zone file and transaction block to Broker ...")
             # Serialize the encrypted data and send to the client
@@ -254,7 +254,7 @@ class Client(object):
                 # TODO
                 # User wants to update dns records
                 print("[!] Option to update DNS chosen")
-                self.update_dns()
+                self.send_server(UPDATE_DNS)
                 pass
             else:
                 # User doesn't know what he wants
@@ -384,11 +384,6 @@ class Client(object):
 
         print("[*] IP address does not exist! Have you updated your zone file?")
         return False
-
-    def update_dns(self):
-        """
-        """
-        self.send_server(UPDATE_DNS)
 
     @staticmethod
     def get_rand_ip():
