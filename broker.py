@@ -1,9 +1,10 @@
 """
 Broker Script
 
-Author @ Zhao Yea
+Author @ Zhao Yea 
 """
 
+import sys
 import json
 import pickle
 import socket
@@ -17,7 +18,7 @@ from blockchain import Blockchain
 
 # Server Settings
 UUID = "Server"
-HOST, PORT = "0.0.0.0", 1339
+HOST, PORT = "0.0.0.0", 1335
 BUFSIZE = 1024
 
 # Database
@@ -31,27 +32,24 @@ SECRET_KEY = r"secrets/dnStack_rsa"
 # Server Flags
 JOIN = "joined"
 EXIT = "exit"
-ZONE_FILE = "test_zone_file"
-BLOCKCHAIN = "blockchain"
-NEW_DOMAIN = "new_domain"
-MINER = "miner"
-
-
-# Server Actions
-BROADCAST = "broadcast"
-SELF_INFO = "self"
+ZONE_FILE = "test_zone_file".encode()
+BLOCKCHAIN = "blockchain".encode()
+NEW_DOMAIN = "new_domain".encode()
+MINER = "miner".encode()
 
 # Client Flags
-UPDATE_DNS_REQUEST = "update_dns".encode()
 REGIS_DOMAIN = "register_domain".encode()
 MINER_PROOF = "miner".encode()
+CONSENSUS = "consensus".encode()
 
 # client session
-CLIENTS = {"Users": []}
+CLIENT_DF = pd.DataFrame(columns=["id", "client_name", "pubkey"])
 
 
 class ThreadedServerHandle(socketserver.BaseRequestHandler):
     def handle(self):
+        global CLIENT_DF
+        
         # Try catch the error
         try:
             # Get the user_id and public key
@@ -62,19 +60,20 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
             print(f"[*] {self.username} has started the connection.")
 
             # Add the new Client to the session DB
-            CLIENTS["Users"].append({
-                "id": self.request,
-                "name": self.username,
-                "pubkey": user_pubkey
-            })
+            CLIENT_DF = CLIENT_DF.append({
+                "id" : self.request,
+                "client_name" : self.username,
+                "pubkey" : user_pubkey
+                }, ignore_index=True) 
+            
 
             # Check for the logon username
             if self.username == "miner":
                 # Send previous hash to miner
-                self.send_client(SELF_INFO, MINER)
+                self.send_miner()
             else:
                 # Send Zone File to the client
-                self.send_client(SELF_INFO, ZONE_FILE)
+                self.send_client(ZONE_FILE)
 
             # Run the message handler to receive client data
             self.message_handle()
@@ -83,10 +82,9 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
         except socket.error:
             self.request.close()
 
-    def send_client(self, action, flag):
+    def send_client(self, flag):
         """
-        Handles the sending feature to the respective clients that are connected to the Broker
-        @param action: <str> Can be either to SELF or BROADCAST
+        Handles the sending feature to the respective clients that are connected to the Broker        
         @param flag: <str> Requested flag to be performed
         @return: No return
         """
@@ -95,79 +93,70 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
 
         # Encryption list for temporary storage
         enc = []
-        # Iterate through the CLIENTS session
-        for session in CLIENTS["Users"]:
-            client_sess = session['id']
-            self.client_name = session['name']
 
-            if self.client_name != "miner":
-                client_pubkey = self.rsa_cipher.importRSAKey(session['pubkey'])
+        recipient_df = CLIENT_DF.loc[CLIENT_DF['id'] == self.request]
 
-            # Peer to Peer communication with only one client
-            if action == SELF_INFO and client_sess == self.request:
-                # Send the zone file over to the client
-                if flag == ZONE_FILE:
-                    print(f"\t[+] Sending Zone file to {self.client_name}")
-                    # Open and read the zone file bye by byte
-                    with open(ZONE_DB_DIR, "rb") as in_file:
-                        while (byte := in_file.read(1)):
-                            # Encrypt the Zone file with RSA Cipher
-                            ciphertext = self.rsa_cipher.encrypt_with_RSA(pub_key=client_pubkey, data=byte)
-                            enc.append(ciphertext)
+        if not recipient_df.empty:
+            client_sess, client_name, pubkey = recipient_df.values[0]
+            client_pubkey = self.rsa_cipher.importRSAKey(pubkey)
+                
+        if flag == ZONE_FILE:        
+            print(f"\t[+] Sending Zone file to {client_name}")
+            # Open and read the zone file bye by byte
+            with open(ZONE_DB_DIR, "rb") as in_file:
+                while (byte := in_file.read(1)):
+                    # Encrypt the Zone file with RSA Cipher
+                    ciphertext = self.rsa_cipher.encrypt_with_RSA(pub_key=client_pubkey, data=byte)
+                    enc.append(ciphertext)
 
+            # Serialize the encrypted data and send to the client
+            msg = (enc, blockchain.chain)
+            client_sess.sendall(pickle.dumps(msg))
 
-                    # Serialize the encrypted data and send to the client
-                    msg = (enc, blockchain.chain)
-                    client_sess.sendall(pickle.dumps(msg))
+            # Send Zone File flag to indicate EOL
+            client_sess.sendall(ZONE_FILE)
 
-                    # Send Zone File flag to indicate EOL
-                    client_sess.sendall(ZONE_FILE.encode())
+            # Reset the encryption list
+            enc = []
 
-                    # Reset the encryption list
-                    enc = []
+        elif flag == CONSENSUS:
+            print(f"\t[+] Client {client_name} request for Consensus")            
 
-                # MINER Flag Handler
-                elif flag == MINER:
-                    print("[*] Sending hash to miner")
-                    # Gets the last block hash
-                    last_block_hash = (blockchain.block_hash(blockchain.chain[-1]))
-                    # Sends last block hash to miner
-                    client_sess.sendall(last_block_hash.encode())
-                    # Sends Miner flag to indicate EOL
-                    client_sess.sendall(MINER.encode())
-
-                elif flag == UPDATE_DNS_REQUEST:
-                    print(f"\t[+] Client {self.client_name} request for DNS update")
-                    print(f"\t[+] Sending Zone file to {self.client_name} for update")
-
-                    # Open and read the zone file bye by byte
-                    with open(ZONE_DB_DIR, "rb") as in_file:
-                        while (byte := in_file.read(1)):
-                            # Encrypt the Zone file with RSA Cipher
-                            ciphertext = self.rsa_cipher.encrypt_with_RSA(pub_key=client_pubkey, data=byte)
-                            enc.append(ciphertext)
+            # Send the Block Chain to Client
+            client_sess.sendall(pickle.dumps(blockchain.chain))
+            # Send CONSENSUS flag to indicate EOL
+            client_sess.sendall(CONSENSUS)
 
 
-                    # Serialize the encrypted data and send to the client
-                    message = (enc, blockchain.chain)
 
-                    client_sess.sendall(pickle.dumps(message))
-
-                    # Send UPDATE_DNS_REQUEST flag to indicate EOL
-                    client_sess.sendall(UPDATE_DNS_REQUEST)
-
-                    # Reset the encryption list
-                    enc = []
-
-            # Communication to everyone except the requested client request
-            elif action == BROADCAST and client_sess != self.request and self.client_name != MINER:
-                # Send message the encrypted domain over to the client
-                if flag == NEW_DOMAIN:
+        elif flag == NEW_DOMAIN:
+            recipient_df = CLIENT_DF.loc[(CLIENT_DF['id'] != self.request) & (CLIENT_DF['client_name'] != MINER)]
+            if not recipient_df.empty:
+                for items in recipient_df[['id', 'pubkey']].values:      
+                    # Import the Public Key
+                    client_sess = items[0]                                                   
+                    client_pubkey = self.rsa_cipher.importRSAKey(items[1])    
+                    
                     encrypted_domain = self.rsa_cipher.encrypt_with_RSA(pub_key=client_pubkey, data=self.plain_domain)
-                    print(f"\t[+] Forwarding Domain information to: {self.client_name}")
+                
+                    print(f"[*] Forwarding Domain information to all nodes")
                     client_sess.sendall(encrypted_domain)
-                    client_sess.sendall(NEW_DOMAIN.encode())
+                    client_sess.sendall(NEW_DOMAIN)
 
+
+    def send_miner(self):
+        """ Function that sends message to MINERS """
+        recipient_df = CLIENT_DF.loc[CLIENT_DF['id'] == self.request]
+        miner_sess = recipient_df['id'].values[0]
+
+        print("\t[+] Sending hash to miner")
+        # Gets the last block hash
+        last_block_hash = (blockchain.block_hash(blockchain.chain[-1]))
+        # Sends last block hash to miner
+        miner_sess.sendall(last_block_hash)
+        # Sends Miner flag to indicate EOL
+        miner_sess.sendall(MINER)
+        
 
     def message_handle(self):
         """ Handles the message between the broker and the client """
@@ -181,7 +170,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                 packet = self.request.recv(BUFSIZE).strip()
 
                 if not packet:
-                    # self.delete_client()
+                    self.delete_client()
                     break
 
                 # Register Domain Flag
@@ -198,23 +187,23 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
 
                     # TODO Make use of the current_transaction for MINING Purposes
 
-                    print(f"[*] {self.client_name} has registered for a domain")
+                    print(f"[*] {self.username} has registered for a domain")
                     # Decrypt the given encryption list
                     plaintext = [self.rsa_cipher.decrypt_with_RSA(broker_privkey, ciphertext) for ciphertext in enc]
                     self.plain_domain = b"".join(plaintext)
-
-                    self.send_client(BROADCAST, NEW_DOMAIN)
+                                        
+                    self.send_client(NEW_DOMAIN)
 
                 # MINER HANDLER
-                elif MINER_PROOF in packet:
-                    data += packet.rstrip(MINER_PROOF)
+                elif MINER in packet:                    
+                    data += packet.rstrip(MINER)
                     proof, prev_hash = pickle.loads(data)
 
                     # Resetting the data buffer
                     data, packet = b"", b""
 
                     if blockchain.valid_proof(prev_hash, proof):
-                        print(f"[*] Proof verified, creating new block {self.client_name}")
+                        print(f"[*] Proof verified, creating new block ...")
 
                         if len(blockchain.current_transactions) == 0:
                             # Creates bogus transaction
@@ -223,17 +212,17 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                                                        zone_file_hash=hashlib.sha256(b"miner").hexdigest())
 
                         # Creates new block
-                        blockchain.new_block(proof=proof, previous_hash=prev_hash)
-
+                        blockchain.new_block(proof=proof, previous_hash=prev_hash)                        
+                                                
                         # Send the next hash to MINER
-                        self.send_client(SELF_INFO, MINER)
-
-                elif UPDATE_DNS_REQUEST in packet:
+                        self.send_miner()                    
+                
+                # Consensus Handler
+                elif CONSENSUS in packet:
                     # Resetting the data buffer
                     data, packet = b"", b""
-
-                    # Sends updated dns to client
-                    self.send_client(SELF_INFO, UPDATE_DNS_REQUEST)
+                    # Sends updated Blockchain to client
+                    self.send_client(CONSENSUS)
 
                 # Concatenate the data together
                 data += packet
@@ -244,10 +233,8 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
 
     def delete_client(self):
         # Delete the client in the dictionary list
-        for index in range(len(CLIENTS["Users"])):
-            if CLIENTS["Users"][index]["id"] == self.request:
-                del CLIENTS["Users"][index]
-
+        CLIENT_DF.drop(CLIENT_DF.loc[CLIENT_DF['id'] == self.request].index, inplace=True)
+        self.request.close()
         print(f"[*] {self.username} left the chat room.")
 
     @staticmethod
@@ -256,7 +243,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
         # Check whether the user_id exist in the ID column of dataframe
         if user_id in map(lambda x: str(x), user_df.id.values):
             return user_df.loc[user_df.id.isin([user_id])].name.to_string(index=False).lstrip()
-
+    
 
 
 class ThreadedServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
@@ -283,7 +270,7 @@ def construct_blockchain(bc):
         bc.new_block(proof=proof, previous_hash=previous_hash)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":    
     # Start and construct the Blockchain
     blockchain = Blockchain()
     print("[*] Constructing Blockchain ...")
@@ -292,11 +279,17 @@ if __name__ == "__main__":
 
     # Start the Broker Server
     server = ThreadedServer((HOST, PORT), ThreadedServerHandle)
-    with server:
-        print(f"[*] Server Started on {HOST}:{PORT}")
-
-        # Start the server thread to thread every single client
-        server_thread = threading.Thread(target=server.serve_forever())
-        server_thread.daemon = True
-        server_thread.start()
+    
+    try:
+        with server:
+            print(f"[*] Server Started on {HOST}:{PORT}")
+            
+            # Start the server thread to thread every single client
+            server_thread = threading.Thread(target=server.serve_forever())
+            server_thread.daemon = True
+            server_thread.start()
+            server.shutdown()
+    
+    except KeyboardInterrupt:
+        print("[*] Shutting down Broker ...")
         server.shutdown()

@@ -17,9 +17,8 @@ from encryption.RSACipher import *
 from blockchain import Blockchain
 
 UUID = "4226355408"
-HOST, PORT = "localhost", 1339
+HOST, PORT = "localhost", 1335
 BUFSIZE = 4096
-CACHE_SITES = []
 
 # Public Key Directory
 CLIENT_PUBKEY_DIR = r"client/alice.pub"
@@ -35,9 +34,13 @@ ZONE_FILE_DIR = r"client/{}".format(UUID)
 # Server Flags
 ZONE_FILE = "test_zone_file".encode()
 NEW_DOMAIN = "new_domain".encode()
-UPDATE_DNS = "update_dns".encode()
 
-REGIS_DOMAIN = "register_domain"
+# Client Flags
+REGIS_DOMAIN = "register_domain".encode()
+CONSENSUS = "consensus".encode()
+
+# Cache Sites DataFrame
+CACHE_SITES = pd.DataFrame(columns=["domain_name", "ip", "type"])
 
 
 class Client(object):
@@ -47,7 +50,7 @@ class Client(object):
         @param host: <str> IP Addr of the Broker
         @param port: <int> Port number of the Broker
         @return: <sock> Client socket connection to the Broker
-        """
+        """        
         print(f"[*] Connecting to Broker @ ({host},{port})")
 
         # Start the blockchain
@@ -89,29 +92,20 @@ class Client(object):
                 if not packet:
                     break
 
-                elif UPDATE_DNS in packet:
+                elif CONSENSUS in packet:
                     # Strip the flag
-                    data += packet.rstrip(UPDATE_DNS)
+                    data += packet.rstrip(CONSENSUS)
 
                     # Load the encrypted data list
-                    enc, chain = pickle.loads(data)
+                    chain = pickle.loads(data)
 
                     # Reset the data buffer
                     data, packet = b"", b""
-
-                    # Prepare to write zone file contents locally and stored in client/ folder
-                    print(f"\n[+] Updated Zone file received from Broker, saving under: {DEFAULT_ZONE_FILE}")
-                    with open(DEFAULT_ZONE_FILE, "wb") as out_file:
-                        for ciphertext in enc:
-                            plaintext = self.rsa_cipher.decrypt_with_RSA(privkey, ciphertext)
-                            out_file.write(plaintext)
-
+                    
                     # Verify the given blockchain
                     if self.blockchain.verify_blockchain(chain):
                         # Update the client Blockchain
                         self.blockchain.chain = chain
-
-                    enc = []
 
                 # ZONE FILE HANDLER
                 elif ZONE_FILE in packet:
@@ -138,8 +132,7 @@ class Client(object):
 
                         # Run the user_menu
                         threading.Thread(target=self.user_menu).start()
-
-                    enc = []
+                    
 
                 # NEW DOMAIN File Handler
                 elif NEW_DOMAIN in packet:
@@ -160,7 +153,6 @@ class Client(object):
                     # Save the new domain zone file locally
                     with open(new_domain_zone_fpath, "w") as out_file:
                         out_file.write(json.dumps(new_domain))
-
 
 
                 # Concatenate the data
@@ -190,15 +182,15 @@ class Client(object):
             self.client_sock.sendall(pickle.dumps(msg))
 
             # Send REGIS_DOMAIN flag to indicate EOL
-            self.client_sock.sendall(REGIS_DOMAIN.encode())
+            self.client_sock.sendall(REGIS_DOMAIN)
 
             enc, self.blockchain.current_transactions = [], []
 
-        elif flag == UPDATE_DNS:
+        elif flag == CONSENSUS:
             print("[+] Sending request for update to Broker ...")
 
-            # Send UPDATE_DNS flag to indicate update request
-            self.client_sock.sendall(UPDATE_DNS)
+            # Send CONSENSUS flag to indicate update request
+            self.client_sock.sendall(CONSENSUS)
 
     @staticmethod
     def get_pubkey(pubkey_dir):
@@ -218,15 +210,16 @@ class Client(object):
             print(f"\t[1] Register a new domain")
             print(f"\t[2] Resolve a domain")
             print(f"\t[3] Resolve an IP address")
-            print(f"\t[4] Request for DNS record (Update)")
-            print(f"\t[5] Quit")
+            print(f"\t[4] Update Blockchain (Consensus)")
+            print(f"\t[5] Print Blockchain")
+            print(f"\t[6] Quit")
 
             try:
                 user_option = input("\t >  ")
             except KeyboardInterrupt:
-                user_option = "5"
+                user_option = "6"
 
-            if user_option == "5":
+            if user_option == "6":
                 # User wants to quit
                 print("\n[!] Bye!")
                 self.client_sock.close()
@@ -250,12 +243,17 @@ class Client(object):
                 print("[!] Option to resolve IP address chosen")
                 ip_addr = input("[*] Enter IP address to resolve > ")
                 self.resolve_ip(ip_addr)
-            elif user_option == "4":
-                # TODO
+            elif user_option == "4":                
                 # User wants to update dns records
                 print("[!] Option to update DNS chosen")
-                self.send_server(UPDATE_DNS)
-                pass
+                self.send_server(CONSENSUS)
+                
+            elif user_option == "5":
+                # User wants to see Blockchain
+                print("[!] Option to view Blockchain chosen")
+                print(json.dumps(self.blockchain.chain, indent=4))
+
+
             else:
                 # User doesn't know what he wants
                 print("[*] Please select an option.")
@@ -326,36 +324,58 @@ class Client(object):
         @param domain_name: <str> Domain name to resolve to IP address
         @return: Returns True if domain is resolved, False otherwise
         """
-
-        # TODO Locates domain in CACHE_SITES first
-
+        global CACHE_SITES
+        # Iterate through CACHE_SITES first before looking in the Blockchain
+        results_df = CACHE_SITES.loc[CACHE_SITES['domain_name'] == domain_name]        
+        
+        # If domain_name exist in CACHE Memory
+        if not results_df.empty:
+            print("\t[+] Found in Cache Sites ...") 
+            domain_name, ip_addr, domain_type = results_df.values[0]
+            print(f"\n\t###### {domain_name} ######")
+            print("\n\t###### IP Addresses ######")
+            print(f"\t{ip_addr}\t{domain_type}")
+            return True
+        
+        print("\t[+] Not found in Cache, iterating through Blockchain now ...")
         # Create the blockchain DataFrame
         df = pd.DataFrame(self.blockchain.chain[1:])
-
+        
         # Extract the Block that contains the domain name
-        block = df.loc[df['transactions'].apply(lambda x: x["domain_name"] == domain_name)] \
-            .to_dict(orient="records")[0]
+        block_df = df.loc[df['transactions'].apply(lambda x: x["domain_name"] == domain_name)]            
 
-        zone_file_hash = block["transactions"]["zone_file_hash"]
+        if not block_df.empty:
+            block = block_df.to_dict(orient="records")[0]
+            zone_file_hash = block["transactions"]["zone_file_hash"]
 
-        if self.blockchain.verify_block(block):
-            for fname in os.listdir(ZONE_FILE_DIR):
-                # Retrieves absolute path of filename
-                abs_path = os.path.join(os.path.abspath(ZONE_FILE_DIR), fname)
-                # Generates hash of absolute path
-                abs_path_hash = self.blockchain.generate_sha256(abs_path)
-                if abs_path_hash == zone_file_hash:
-                    # Loads in zone file
-                    with open(abs_path, "rb") as in_file:
-                        data = json.loads(in_file.read())
+            if self.blockchain.verify_block(block):
+                for fname in os.listdir(ZONE_FILE_DIR):
+                    # Retrieves absolute path of filename
+                    abs_path = os.path.join(os.path.abspath(ZONE_FILE_DIR), fname)
+                    # Generates hash of absolute path
+                    abs_path_hash = self.blockchain.generate_sha256(abs_path)
+                    if abs_path_hash == zone_file_hash:
+                        # Loads in zone file
+                        with open(abs_path, "rb") as in_file:
+                            data = json.loads(in_file.read())
 
-                    # Loops through to locate requested domain
-                    for domains in data.keys():
-                        if domains == domain_name:
-                            print("\n\t###### IP Addresses ######")
-                            for i in data[domains]:
-                                print(f"\t{i['type']}\t{i['data']}")
-                            return True
+                        # Loops through to locate requested domain
+                        for domains in data.keys():
+                            if domains == domain_name:
+                                print(f"\n\t###### {domain_name} ######")
+                                print("\n\t###### IP Addresses ######")
+                                for i in data[domains]:
+                                    
+                                    # Add records in to CACHE_SITES DataFrame
+                                    CACHE_SITES = CACHE_SITES.append({
+                                        "domain_name": domain_name,
+                                        "ip" : i['data'],
+                                        "type": i['type']
+                                        }, ignore_index=True)
+
+                                    print(f"\t{i['type']}\t{i['data']}")
+
+                                return True
 
         print("[*] Domain does not exist! Have you updated your zone file?")
         return False

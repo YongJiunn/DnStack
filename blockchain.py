@@ -108,7 +108,7 @@ class Blockchain(object):
             print("[!] Error in Block! Do not visit any domains until you can update your zone file")
             return False
 
-        print("[*] Block verified successfully")
+        print("\t[+] Block verified successfully")
         return True
 
     @staticmethod
