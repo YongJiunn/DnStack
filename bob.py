@@ -18,7 +18,7 @@ from blockchain import Blockchain
 
 UUID = "2112200367"
 HOST, PORT = "localhost", 1339
-BUFSIZE = 1024
+BUFSIZE = 4096
 CACHE_SITES = []
 
 # Public Key Directory
@@ -33,8 +33,9 @@ DEFAULT_ZONE_FILE = r"client/{}/dns_zone.json".format(UUID)
 ZONE_FILE_DIR = r"client/{}".format(UUID)
 
 # Server Flags
-ZONE_FILE = "zone_file".encode()
+ZONE_FILE = "test_zone_file".encode()
 NEW_DOMAIN = "new_domain".encode()
+UPDATE_DNS = "update_dns".encode()
 
 REGIS_DOMAIN = "register_domain"
 
@@ -88,6 +89,30 @@ class Client(object):
                 if not packet:
                     break
 
+                elif UPDATE_DNS in packet:
+                    # Strip the flag
+                    data += packet.rstrip(UPDATE_DNS)
+
+                    # Load the encrypted data list
+                    enc, chain = pickle.loads(data)
+
+                    # Reset the data buffer
+                    data, packet = b"", b""
+
+                    # Prepare to write zone file contents locally and stored in client/ folder
+                    print(f"\n[+] Updated Zone file received from Broker, saving under: {DEFAULT_ZONE_FILE}")
+                    with open(DEFAULT_ZONE_FILE, "wb") as out_file:
+                        for ciphertext in enc:
+                            plaintext = self.rsa_cipher.decrypt_with_RSA(privkey, ciphertext)
+                            out_file.write(plaintext)
+
+                    # Verify the given blockchain
+                    if self.blockchain.verify_blockchain(chain):
+                        # Update the client Blockchain
+                        self.blockchain.chain = chain
+
+                    enc = []
+
                 # ZONE FILE HANDLER
                 elif ZONE_FILE in packet:
                     # Strip the flag
@@ -114,6 +139,7 @@ class Client(object):
                         # Run the user_menu
                         threading.Thread(target=self.user_menu).start()
 
+                    enc = []
 
                 # NEW DOMAIN File Handler
                 elif NEW_DOMAIN in packet:
@@ -135,6 +161,8 @@ class Client(object):
                     with open(new_domain_zone_fpath, "w") as out_file:
                         out_file.write(json.dumps(new_domain))
 
+
+
                 # Concatenate the data
                 data += packet
 
@@ -151,8 +179,7 @@ class Client(object):
 
         if flag == REGIS_DOMAIN:
             with open(self.new_zone_fpath, "rb") as in_file:
-                byte = in_file.read(1)
-                while byte != b"":
+                while (byte := in_file.read(1)):
                     ciphertext = self.rsa_cipher.encrypt_with_RSA(pub_key=pubkey, data=byte)
                     enc.append(ciphertext)
                     byte = in_file.read(1)
@@ -166,6 +193,12 @@ class Client(object):
             self.client_sock.sendall(REGIS_DOMAIN.encode())
 
             enc, self.blockchain.current_transactions = [], []
+
+        elif flag == UPDATE_DNS:
+            print("[+] Sending request for update to Broker ...")
+
+            # Send UPDATE_DNS flag to indicate update request
+            self.client_sock.sendall(UPDATE_DNS)
 
     @staticmethod
     def get_pubkey(pubkey_dir):
@@ -220,6 +253,8 @@ class Client(object):
             elif user_option == "4":
                 # TODO
                 # User wants to update dns records
+                print("[!] Option to update DNS chosen")
+                self.update_dns()
                 pass
             else:
                 # User doesn't know what he wants
@@ -349,6 +384,11 @@ class Client(object):
 
         print("[*] IP address does not exist! Have you updated your zone file?")
         return False
+
+    def update_dns(self):
+        """
+        """
+        self.send_server(UPDATE_DNS)
 
     @staticmethod
     def get_rand_ip():

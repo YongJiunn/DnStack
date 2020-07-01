@@ -1,7 +1,7 @@
 """
 Broker Script
 
-Author @ Zhao Yea 
+Author @ Zhao Yea
 """
 
 import json
@@ -31,16 +31,18 @@ SECRET_KEY = r"secrets/dnStack_rsa"
 # Server Flags
 JOIN = "joined"
 EXIT = "exit"
-ZONE_FILE = "zone_file"
+ZONE_FILE = "test_zone_file"
 BLOCKCHAIN = "blockchain"
 NEW_DOMAIN = "new_domain"
 MINER = "miner"
+
 
 # Server Actions
 BROADCAST = "broadcast"
 SELF_INFO = "self"
 
 # Client Flags
+UPDATE_DNS_REQUEST = "update_dns".encode()
 REGIS_DOMAIN = "register_domain".encode()
 MINER_PROOF = "miner".encode()
 
@@ -97,19 +99,18 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
         for session in CLIENTS["Users"]:
             client_sess = session['id']
             self.client_name = session['name']
-            
+
             if self.client_name != "miner":
                 client_pubkey = self.rsa_cipher.importRSAKey(session['pubkey'])
 
             # Peer to Peer communication with only one client
             if action == SELF_INFO and client_sess == self.request:
                 # Send the zone file over to the client
-                if flag == ZONE_FILE:                    
+                if flag == ZONE_FILE:
                     print(f"\t[+] Sending Zone file to {self.client_name}")
                     # Open and read the zone file bye by byte
                     with open(ZONE_DB_DIR, "rb") as in_file:
-                        byte = in_file.read(1)
-                        while byte != b"":
+                        while (byte := in_file.read(1)):
                             # Encrypt the Zone file with RSA Cipher
                             ciphertext = self.rsa_cipher.encrypt_with_RSA(pub_key=client_pubkey, data=byte)
                             enc.append(ciphertext)
@@ -135,6 +136,28 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                     # Sends Miner flag to indicate EOL
                     client_sess.sendall(MINER.encode())
 
+                elif flag == UPDATE_DNS_REQUEST:
+                    print(f"\t[+] Client {self.client_name} request for DNS update")
+                    print(f"\t[+] Sending Zone file to {self.client_name} for update")
+
+                    # Open and read the zone file bye by byte
+                    with open(ZONE_DB_DIR, "rb") as in_file:
+                        while (byte := in_file.read(1)):
+                            # Encrypt the Zone file with RSA Cipher
+                            ciphertext = self.rsa_cipher.encrypt_with_RSA(pub_key=client_pubkey, data=byte)
+                            enc.append(ciphertext)
+                            byte = in_file.read(1)
+
+                    # Serialize the encrypted data and send to the client
+                    message = (enc, blockchain.chain)
+
+                    client_sess.sendall(pickle.dumps(message))
+
+                    # Send UPDATE_DNS_REQUEST flag to indicate EOL
+                    client_sess.sendall(UPDATE_DNS_REQUEST)
+
+                    # Reset the encryption list
+                    enc = []
 
             # Communication to everyone except the requested client request
             elif action == BROADCAST and client_sess != self.request and self.client_name != MINER:
@@ -144,7 +167,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                     print(f"\t[+] Forwarding Domain information to: {self.client_name}")
                     client_sess.sendall(encrypted_domain)
                     client_sess.sendall(NEW_DOMAIN.encode())
-            
+
 
     def message_handle(self):
         """ Handles the message between the broker and the client """
@@ -179,11 +202,11 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                     # Decrypt the given encryption list
                     plaintext = [self.rsa_cipher.decrypt_with_RSA(broker_privkey, ciphertext) for ciphertext in enc]
                     self.plain_domain = b"".join(plaintext)
-                                        
+
                     self.send_client(BROADCAST, NEW_DOMAIN)
 
                 # MINER HANDLER
-                elif MINER_PROOF in packet:                    
+                elif MINER_PROOF in packet:
                     data += packet.rstrip(MINER_PROOF)
                     proof, prev_hash = pickle.loads(data)
 
@@ -200,11 +223,18 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                                                        zone_file_hash=hashlib.sha256(b"miner").hexdigest())
 
                         # Creates new block
-                        blockchain.new_block(proof=proof, previous_hash=prev_hash)                        
-                                                
+                        blockchain.new_block(proof=proof, previous_hash=prev_hash)
+
                         # Send the next hash to MINER
-                        self.send_client(SELF_INFO, MINER)                    
-                
+                        self.send_client(SELF_INFO, MINER)
+
+                elif UPDATE_DNS_REQUEST in packet:
+                    # Resetting the data buffer
+                    data, packet = b"", b""
+
+                    # Sends updated dns to client
+                    self.send_client(SELF_INFO, UPDATE_DNS_REQUEST)
+
                 # Concatenate the data together
                 data += packet
 
@@ -226,7 +256,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
         # Check whether the user_id exist in the ID column of dataframe
         if user_id in map(lambda x: str(x), user_df.id.values):
             return user_df.loc[user_df.id.isin([user_id])].name.to_string(index=False).lstrip()
-    
+
 
 
 class ThreadedServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
@@ -264,7 +294,7 @@ if __name__ == "__main__":
     server = ThreadedServer((HOST, PORT), ThreadedServerHandle)
     with server:
         print(f"[*] Server Started on {HOST}:{PORT}")
-        
+
         # Start the server thread to thread every single client
         server_thread = threading.Thread(target=server.serve_forever())
         server_thread.daemon = True
