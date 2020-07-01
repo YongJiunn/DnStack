@@ -30,8 +30,6 @@ server_reply = "(Server)"
 SECRET_KEY = r"secrets/dnStack_rsa"
 
 # Server Flags
-JOIN = "joined"
-EXIT = "exit"
 ZONE_FILE = "test_zone_file".encode()
 BLOCKCHAIN = "blockchain".encode()
 NEW_DOMAIN = "new_domain".encode()
