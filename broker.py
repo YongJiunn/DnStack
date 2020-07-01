@@ -49,7 +49,7 @@ CLIENT_DF = pd.DataFrame(columns=["id", "client_name", "pubkey"])
 class ThreadedServerHandle(socketserver.BaseRequestHandler):
     def handle(self):
         global CLIENT_DF
-        
+
         # Try catch the error
         try:
             # Get the user_id and public key
@@ -61,11 +61,10 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
 
             # Add the new Client to the session DB
             CLIENT_DF = CLIENT_DF.append({
-                "id" : self.request,
-                "client_name" : self.username,
-                "pubkey" : user_pubkey
-                }, ignore_index=True) 
-            
+                "id": self.request,
+                "client_name": self.username,
+                "pubkey": user_pubkey
+            }, ignore_index=True)
 
             # Check for the logon username
             if self.username == "miner":
@@ -95,12 +94,10 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
         enc = []
 
         recipient_df = CLIENT_DF.loc[CLIENT_DF['id'] == self.request]
+        client_sess, client_name, pubkey = recipient_df.values[0]
+        client_pubkey = self.rsa_cipher.importRSAKey(pubkey)
 
-        if not recipient_df.empty:
-            client_sess, client_name, pubkey = recipient_df.values[0]
-            client_pubkey = self.rsa_cipher.importRSAKey(pubkey)
-                
-        if flag == ZONE_FILE:        
+        if flag == ZONE_FILE:
             print(f"\t[+] Sending Zone file to {client_name}")
             # Open and read the zone file bye by byte
             with open(ZONE_DB_DIR, "rb") as in_file:
@@ -120,29 +117,26 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
             enc = []
 
         elif flag == CONSENSUS:
-            print(f"\t[+] Client {client_name} request for Consensus")            
+            print(f"\t[+] Client {client_name} request for Consensus")
 
             # Send the Block Chain to Client
             client_sess.sendall(pickle.dumps(blockchain.chain))
             # Send CONSENSUS flag to indicate EOL
             client_sess.sendall(CONSENSUS)
 
-
-
         elif flag == NEW_DOMAIN:
             recipient_df = CLIENT_DF.loc[(CLIENT_DF['id'] != self.request) & (CLIENT_DF['client_name'] != MINER)]
             if not recipient_df.empty:
-                for items in recipient_df[['id', 'pubkey']].values:      
+                for items in recipient_df[['id', 'pubkey']].values:
                     # Import the Public Key
-                    client_sess = items[0]                                                   
-                    client_pubkey = self.rsa_cipher.importRSAKey(items[1])    
-                    
+                    client_sess = items[0]
+                    client_pubkey = self.rsa_cipher.importRSAKey(items[1])
+
                     encrypted_domain = self.rsa_cipher.encrypt_with_RSA(pub_key=client_pubkey, data=self.plain_domain)
-                
+
                     print(f"[*] Forwarding Domain information to all nodes")
                     client_sess.sendall(encrypted_domain)
                     client_sess.sendall(NEW_DOMAIN)
-
 
     def send_miner(self):
         """ Function that sends message to MINERS """
@@ -153,10 +147,9 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
         # Gets the last block hash
         last_block_hash = (blockchain.block_hash(blockchain.chain[-1]))
         # Sends last block hash to miner
-        miner_sess.sendall(last_block_hash)
+        miner_sess.sendall(last_block_hash.encode())
         # Sends Miner flag to indicate EOL
         miner_sess.sendall(MINER)
-        
 
     def message_handle(self):
         """ Handles the message between the broker and the client """
@@ -191,11 +184,11 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                     # Decrypt the given encryption list
                     plaintext = [self.rsa_cipher.decrypt_with_RSA(broker_privkey, ciphertext) for ciphertext in enc]
                     self.plain_domain = b"".join(plaintext)
-                                        
+
                     self.send_client(NEW_DOMAIN)
 
                 # MINER HANDLER
-                elif MINER in packet:                    
+                elif MINER in packet:
                     data += packet.rstrip(MINER)
                     proof, prev_hash = pickle.loads(data)
 
@@ -212,12 +205,12 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                                                        zone_file_hash=hashlib.sha256(b"miner").hexdigest())
 
                         # Creates new block
-                        blockchain.new_block(proof=proof, previous_hash=prev_hash)                        
-                                                
+                        blockchain.new_block(proof=proof, previous_hash=prev_hash)
+
                         # Send the next hash to MINER
-                        self.send_miner()                    
-                
-                # Consensus Handler
+                        self.send_miner()
+
+                        # Consensus Handler
                 elif CONSENSUS in packet:
                     # Resetting the data buffer
                     data, packet = b"", b""
@@ -243,7 +236,6 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
         # Check whether the user_id exist in the ID column of dataframe
         if user_id in map(lambda x: str(x), user_df.id.values):
             return user_df.loc[user_df.id.isin([user_id])].name.to_string(index=False).lstrip()
-    
 
 
 class ThreadedServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
@@ -270,7 +262,7 @@ def construct_blockchain(bc):
         bc.new_block(proof=proof, previous_hash=previous_hash)
 
 
-if __name__ == "__main__":    
+if __name__ == "__main__":
     # Start and construct the Blockchain
     blockchain = Blockchain()
     print("[*] Constructing Blockchain ...")
@@ -279,17 +271,17 @@ if __name__ == "__main__":
 
     # Start the Broker Server
     server = ThreadedServer((HOST, PORT), ThreadedServerHandle)
-    
+
     try:
         with server:
             print(f"[*] Server Started on {HOST}:{PORT}")
-            
+
             # Start the server thread to thread every single client
             server_thread = threading.Thread(target=server.serve_forever())
             server_thread.daemon = True
             server_thread.start()
             server.shutdown()
-    
+
     except KeyboardInterrupt:
         print("[*] Shutting down Broker ...")
         server.shutdown()
