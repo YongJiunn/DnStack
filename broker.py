@@ -4,7 +4,6 @@ Broker Script
 Author @ Zhao Yea 
 """
 
-import sys
 import json
 import pickle
 import socket
