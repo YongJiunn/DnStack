@@ -84,11 +84,13 @@ class Blockchain(object):
 
             # Check the hash of the block is correct
             if block['previous_hash'] != self.block_hash(last_block):
+                print("[!] Block error")
                 print("[!] Error in blockchain! Do not visit any domains until you can update your zone file")
                 return False
 
             # Check that the Proof of Work is correct:
             if not self.valid_proof(last_block['previous_hash'], last_block['proof']):
+                print("[!] Proof error")
                 print("[!] Error in blockchain! Do not visit any domains until you can update your zone file")
                 return False
 
@@ -121,8 +123,7 @@ class Blockchain(object):
         """
         # guess_hash = hashlib.sha256(f'{previous_hash * proof}'.encode()).hexdigest()
         # TODO This is a temp POW, faster for testing purposes
-        guess_hash = hashlib.sha256(
-            f'{previous_hash} * {proof}'.encode()).hexdigest()
+        guess_hash = hashlib.sha256(f'{previous_hash} * {proof}'.encode()).hexdigest()
         return guess_hash[:4] == "0000"
 
     @staticmethod

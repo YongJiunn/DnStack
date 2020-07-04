@@ -173,9 +173,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                     data, packet = b"", b""
 
                     # Initialise client transaction to broker own transaction
-                    blockchain.current_transactions.append(client_transaction)
-
-                    # TODO Make use of the current_transaction for MINING Purposes
+                    blockchain.current_transactions.append(client_transaction[0])
 
                     print(f"[*] {self.username} has registered for a domain")
                     # Decrypt the given encryption list
@@ -207,7 +205,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                         # Send the next hash to MINER
                         self.send_miner()
 
-                        # Consensus Handler
+                # Consensus Handler
                 elif CONSENSUS in packet:
                     # Resetting the data buffer
                     data, packet = b"", b""

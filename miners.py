@@ -10,7 +10,7 @@ import pickle
 import hashlib
 
 UUID = "3234739665"
-HOST, PORT = "localhost", 1339
+HOST, PORT = "localhost", 1335
 BUFSIZE = 2048
 MINER = "miner".encode()
 
