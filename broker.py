@@ -26,7 +26,7 @@ USER_DB_DIR = r"database/Users.txt"
 ZONE_DB_DIR = r"database/dns_zone.json"
 
 # Admin
-server_reply = "(Server)"
+server_reply = "Server"
 SECRET_KEY = r"secrets/dnStack_rsa"
 
 # Server Flags
@@ -201,7 +201,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
 
                     # Save the Domain Registration Information
                     with open(DOMAIN_PROFILES_LOG, "a+") as out_file:
-                        out_file.write(f"{self.username},{self.plain_domain.decode()}\n")
+                        out_file.write(f"{self.username}::{self.plain_domain.decode()}\n")
 
                     self.send_client(NEW_DOMAIN)
 
@@ -294,6 +294,9 @@ if __name__ == "__main__":
     logging.info("Constructing Blockchain ...")
     construct_blockchain(blockchain)
     logging.info("Blockchain constructed !!!")
+
+    # Empty the New Domain Log Files
+    open(DOMAIN_PROFILES_LOG, 'w').close()
 
     # Start the Broker Server
     server = ThreadedServer((HOST, PORT), ThreadedServerHandle)

@@ -10,6 +10,7 @@ import pickle
 import socket
 import random
 import struct
+import shutil
 import threading
 import pandas as pd
 
@@ -325,16 +326,23 @@ class Client(object):
         @return: Returns True if domain is resolved, False otherwise
         """
         global CACHE_SITES
+
+        # Separate the subdomain
+        name, ext = domain_name.split('.')[-2:]
+        domain_name = f'{name}.{ext}'
+
         # Iterate through CACHE_SITES first before looking in the Blockchain
         results_df = CACHE_SITES.loc[CACHE_SITES['domain_name'] == domain_name]        
         
         # If domain_name exist in CACHE Memory
         if not results_df.empty:
-            print("\t[+] Found in Cache Sites ...") 
-            domain_name, ip_addr, domain_type = results_df.values[0]
+            print("\t[+] Found in Cache Sites ...")
             print(f"\n\t###### {domain_name} ######")
             print("\n\t###### IP Addresses ######")
-            print(f"\t{ip_addr}\t{domain_type}")
+
+            for domain_name, ip_addr, domain_type in results_df.values:
+                print(f"\t{ip_addr}\t{domain_type}")
+
             return True
         
         print("\t[+] Not found in Cache, iterating through Blockchain now ...")
@@ -365,7 +373,6 @@ class Client(object):
                                 print(f"\n\t###### {domain_name} ######")
                                 print("\n\t###### IP Addresses ######")
                                 for i in data[domains]:
-                                    
                                     # Add records in to CACHE_SITES DataFrame
                                     CACHE_SITES = CACHE_SITES.append({
                                         "domain_name": domain_name,
@@ -421,3 +428,6 @@ if __name__ == '__main__':
 
     # Run the client connection with the broker
     Client(HOST, PORT)
+
+    # Delete Client Folder After Connection Ends
+    shutil.rmtree(ZONE_FILE_DIR)

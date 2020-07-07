@@ -10,6 +10,7 @@ import pickle
 import socket
 import random
 import struct
+import shutil
 import threading
 import pandas as pd
 
@@ -325,6 +326,11 @@ class Client(object):
         @return: Returns True if domain is resolved, False otherwise
         """
         global CACHE_SITES
+
+        # Separate the subdomain
+        name, ext = domain_name.split('.')[-2:]
+        domain_name = f'{name}.{ext}'
+
         # Iterate through CACHE_SITES first before looking in the Blockchain
         results_df = CACHE_SITES.loc[CACHE_SITES['domain_name'] == domain_name]        
         
@@ -421,3 +427,6 @@ if __name__ == '__main__':
 
     # Run the client connection with the broker
     Client(HOST, PORT)
+
+    # Delete Client Folder After Connection Ends
+    shutil.rmtree(ZONE_FILE_DIR)

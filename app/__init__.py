@@ -38,40 +38,73 @@ def index():
         return render_template('login.html')
 
     else:
-        # try:
-        # Load the Blockchain
-        with open(BLOCKCHAIN_LOG, "r") as bc_log:
-            blockchain = json.loads(bc_log.read())
+        try:
+            # Load the Blockchain
+            with open(BLOCKCHAIN_LOG, "r") as bc_log:
+                blockchain = json.loads(bc_log.read())
 
-        # Load the Client Session
-        with open(CLIENT_SESS_LOG, "r") as sess_log:
-            active_clients = sess_log.read().split(",")
+            # Load the Client Session
+            with open(CLIENT_SESS_LOG, "r") as sess_log:
+                active_clients = sess_log.read().split(",")
 
-        # Load the Transaction Session
-        sys_log = []
-        with open(SYSLOG, "r") as sys_log_file:
-            for _ in range(3):
-                next(sys_log_file)
-            for line in sys_log_file:
-                sys_log.append(re.search(r".*INFO\]\s(.*)", line).group(1))
+            # Load the Transaction Session
+            sys_log = []
+            with open(SYSLOG, "r") as sys_log_file:
+                for _ in range(3):
+                    next(sys_log_file)
+                for line in sys_log_file:
+                    sys_log.append(re.search(r".*INFO\]\s(.*)", line).group(1))
 
+            # Load the Domain Page
+            new_domain = sum(1 for line in open(DOMAIN_PROFILES_LOG))
+
+            templateData = {
+                'blockchain': blockchain,
+                'active_clients': active_clients,
+                'sys_log': sys_log,
+                'new_domain': new_domain
+            }
+
+            return render_template('index.html', **templateData)
+
+        except:
+            # if session expire, set the session to False
+            session['active'] = False
+            flash('Session Expire')
+            return redirect('/')
+
+
+@app.route('/domains')
+def domains():
+    # Check for Session
+    if not session.get('active'):
+        return render_template('login.html')
+
+    else:
         # Load the Domain Page
-        new_domain = sum(1 for line in open(DOMAIN_PROFILES_LOG))
+        data = []
+        with open(DOMAIN_PROFILES_LOG, "r") as domain_log:
+            for line in domain_log:
+                parse_data = line.strip().split('::')
+
+                owner = parse_data[0]
+                domain_info = json.loads(parse_data[1])
+
+                domain_name = ""
+                for key, value in domain_info.items():
+                    domain_name = key
+                    for items in value:
+                        subdomain = items['subdomain']
+                        ip = items['data']
+                        domain_type = items['type']
+
+                data.append([owner, domain_name, subdomain, ip, domain_type])
 
         templateData = {
-            'blockchain': blockchain,
-            'active_clients': active_clients,
-            'sys_log': sys_log,
-            'new_domain': new_domain
+            'new_domains': data
         }
 
-        return render_template('index.html', **templateData)
-
-        # except:
-        #     # if session expire, set the session to False
-        #     session['active'] = False
-        #     flash('Session Expire')
-        #     return redirect('/')
+        return render_template('domain.html', **templateData)
 
 
 @app.route('/login', methods=["POST"])

@@ -1,7 +1,18 @@
-2020-07-07 21:14:30,015 [INFO] Constructing Blockchain ...
-2020-07-07 21:14:30,187 [INFO] Blockchain constructed !!!
-2020-07-07 21:14:30,188 [INFO] Server Started on 0.0.0.0:1335
-2020-07-07 21:14:32,131 [INFO] alice has started the connection.
-2020-07-07 21:14:32,152 [INFO] Sending Zone file to alice
-2020-07-07 21:14:33,397 [INFO] bob has started the connection.
-2020-07-07 21:14:33,403 [INFO] Sending Zone file to bob
+2020-07-07 22:09:30,008 [INFO] Constructing Blockchain ...
+2020-07-07 22:09:30,101 [INFO] Blockchain constructed !!!
+2020-07-07 22:09:30,102 [INFO] Server Started on 0.0.0.0:1335
+2020-07-07 22:09:35,390 [INFO] alice has started the connection.
+2020-07-07 22:09:35,411 [INFO] Sending Zone file to alice
+2020-07-07 22:09:36,479 [INFO] bob has started the connection.
+2020-07-07 22:09:36,484 [INFO] Sending Zone file to bob
+2020-07-07 22:09:50,715 [INFO] alice has registered for a domain
+2020-07-07 22:09:51,598 [INFO] Forwarding Domain information to all nodes
+2020-07-07 22:09:56,012 [INFO] bob has registered for a domain
+2020-07-07 22:09:56,854 [INFO] Forwarding Domain information to all nodes
+2020-07-07 22:09:59,564 [INFO] miner has started the connection.
+2020-07-07 22:09:59,567 [INFO] Sending hash to miner
+2020-07-07 22:10:14,573 [INFO] Proof verified, creating new block ...
+2020-07-07 22:10:14,576 [INFO] Sending hash to miner
+2020-07-07 22:10:29,608 [INFO] Proof verified, creating new block ...
+2020-07-07 22:10:29,609 [INFO] Sending hash to miner
+2020-07-07 22:10:41,862 [INFO] miner has been disconnected.

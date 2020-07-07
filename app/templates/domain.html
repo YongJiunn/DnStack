@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zxx" class="js">
+<body class="page-user">
+{% include 'base.html' %}
+<div class="page-content">
+    <div class="container">
+        <div class="token-transaction card card-full-height">
+            <div class="card-innr">
+                <div class="card-head has-aside"><h4 class="card-title">Domains</h4></div>
+                <table id="dtBasicExample" class="table table-striped table-bordered table-sm" cellspacing="0"
+                       width="100%">
+                    <thead>
+                    <tr>
+                        <th class="th-sm">Owner</th>
+                        <th class="th-sm">Domain Name</th>
+                        <th class="th-sm">Sub Domain</th>
+                        <th class="th-sm">IP Address</th>
+                        <th class="th-sm">Type</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for data in new_domains %}
+                    <tr>
+                        <td>{{ data[0] }}</td>
+                        <td>{{ data[1] }}</td>
+                        <td>{{ data[2] }}</td>
+                        <td>{{ data[3] }}</td>
+                        <td>{{ data[4] }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    $(document).ready(function () {
+        $('#dtBasicExample').DataTable({
+            searching: false,
+        });
+        $('.dataTables_length').addClass('bs-select');
+    });
+
+</script>
+</body>
+</html>
