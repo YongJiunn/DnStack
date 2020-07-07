@@ -1,2 +1,0 @@
-alice,{"alice.stack": [{"subdomain": "www", "data": "88.130.96.61", "type": "A"}]}
-bob,{"bob.stack": [{"subdomain": "www", "data": "18.153.145.153", "type": "A"}]}

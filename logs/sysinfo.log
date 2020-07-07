@@ -1,7 +1,7 @@
-2020-07-07 20:09:15,753 [INFO] Constructing Blockchain ...
-2020-07-07 20:09:16,079 [INFO] Blockchain constructed !!!
-2020-07-07 20:09:16,081 [INFO] Server Started on 0.0.0.0:1335
-2020-07-07 20:09:19,513 [INFO] alice has started the connection.
-2020-07-07 20:09:19,568 [INFO] Sending Zone file to alice
-2020-07-07 20:09:20,460 [INFO] bob has started the connection.
-2020-07-07 20:09:20,466 [INFO] Sending Zone file to bob
+2020-07-07 21:14:30,015 [INFO] Constructing Blockchain ...
+2020-07-07 21:14:30,187 [INFO] Blockchain constructed !!!
+2020-07-07 21:14:30,188 [INFO] Server Started on 0.0.0.0:1335
+2020-07-07 21:14:32,131 [INFO] alice has started the connection.
+2020-07-07 21:14:32,152 [INFO] Sending Zone file to alice
+2020-07-07 21:14:33,397 [INFO] bob has started the connection.
+2020-07-07 21:14:33,403 [INFO] Sending Zone file to bob

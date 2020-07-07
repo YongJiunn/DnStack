@@ -131,26 +131,22 @@
                 <div class="token-transaction card card-full-height">
                     <div class="card-innr">
                         <div class="card-head has-aside"><h4 class="card-title">Syslog</h4></div>
-                        <table class="table tnx-table">
+                        <table id="dtBasicExample" class="table table-striped table-bordered table-sm" cellspacing="0" width="100%">
                             <thead>
                             <tr>
-                                <th>
-                                    <span class="badge badge-md badge-primary">INFO</span>
-                                </th>
-                            </tr><!-- tr -->
-                            </thead><!-- thead -->
-
+                                <th class="th-sm">Index</th>
+                                <th class="th-sm">INFO</th>
+                            </tr>
+                            </thead>
                             <tbody>
                             {% for info in sys_log %}
                             <tr>
-                                <td>
-                                    <span class="fa fa-info-circle"></span>
-                                    <span class="lead">{{ info }}</span></div>
-                                </td>
-                            </tr><!-- tr -->
+                                <td>{{ loop.index }}</td>
+                                <td>{{ info }}</td>
+                            </tr>
                             {% endfor %}
-                            </tbody><!-- tbody -->
-                        </table><!-- .table -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -178,5 +174,15 @@
         </div><!-- .row -->
     </div><!-- .container -->
 </div><!-- .footer-bar -->
+
+<script>
+    $(document).ready(function () {
+        $('#dtBasicExample').DataTable({
+            searching: false,
+        });
+        $('.dataTables_length').addClass('bs-select');
+    });
+</script>
+
 </body>
 </html>
