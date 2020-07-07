@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <!------ Include the above in your HEAD tag ---------->
+    <style>
+    body,html {
+    background-image: url('https://imgur.com/iXoG3tJ.jpg');
+    background-size: 110%;
+    }
+
+    #profile-img {
+        height:180px;
+    }
+
+    #login_container {
+        padding-top: 250px;
+    }
+
+    </style>
+</head>
+<body>
+<div id="login_container" class="container">
+    <div class="row align-items-center h-100">
+        <div class="col-3 mx-auto">
+            <div class="text-center">
+                <img id="profile-img" src="../static/images/dnstack_logo.png"/>
+                <p id="profile-name" class="profile-name-card"></p>
+
+                {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-danger alert-dismissible fade show">{{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                </div>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+
+                <form action="{{ url_for('login') }}" class="form-signin" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="password" name="password" id="inputPassword" class="form-control form-group"
+                           placeholder="Password" required autofocus>
+                    <button class="btn btn-lg btn-primary btn-block btn-signin" type="submit">Sign in</button>
+                </form><!-- /form -->
+            </div>
+        </div>
+    </div>
+</div>
+<script src="../static/js/jquery.bundle49f7.js?ver=104"></script>
+</body>
+</html>

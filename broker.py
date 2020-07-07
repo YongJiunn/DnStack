@@ -11,6 +11,7 @@ import threading
 import socketserver
 import pandas as pd
 import hashlib
+import logging
 
 from encryption.RSACipher import *
 from blockchain import Blockchain
@@ -39,8 +40,20 @@ REGIS_DOMAIN = "register_domain".encode()
 MINER_PROOF = "miner".encode()
 CONSENSUS = "consensus".encode()
 
+# Admin Site Log Files
+SYSLOG = r"logs/sysinfo.log"
+CLIENT_SESS_LOG = r"logs/client_session.log"
+DOMAIN_PROFILES_LOG = r"logs/domain_profiles.log"
+BLOCKCHAIN_LOG = r"logs/blockchain.log"
+
 # client session
 CLIENT_DF = pd.DataFrame(columns=["id", "client_name", "pubkey"])
+
+# Logging Feature
+logging.basicConfig(level=logging.INFO,
+                    format="%(asctime)s [%(levelname)s] %(message)s",
+                    handlers=[logging.FileHandler(SYSLOG, "w+"), logging.StreamHandler()]
+                    )
 
 
 class ThreadedServerHandle(socketserver.BaseRequestHandler):
@@ -54,7 +67,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
             self.username = self.get_username(USER_DB_DIR, user_id)
 
             # Info message
-            print(f"[*] {self.username} has started the connection.")
+            logging.info(f"{self.username} has started the connection.")
 
             # Add the new Client to the session DB
             CLIENT_DF = CLIENT_DF.append({
@@ -62,6 +75,10 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                 "client_name": self.username,
                 "pubkey": user_pubkey
             }, ignore_index=True)
+
+            # Write Active Clients to Log File
+            with open(CLIENT_SESS_LOG, "w+") as out_file:
+                out_file.write(CLIENT_DF['client_name'].str.cat(sep=','))
 
             # Check for the logon username
             if self.username == "miner":
@@ -95,7 +112,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
         client_pubkey = self.rsa_cipher.importRSAKey(pubkey)
 
         if flag == ZONE_FILE:
-            print(f"\t[+] Sending Zone file to {client_name}")
+            logging.info(f"Sending Zone file to {client_name}")
             # Open and read the zone file bye by byte
             with open(ZONE_DB_DIR, "rb") as in_file:
                 while (byte := in_file.read(1)):
@@ -114,7 +131,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
             enc = []
 
         elif flag == CONSENSUS:
-            print(f"\t[+] Client {client_name} request for Consensus")
+            logging.info(f"Client {client_name} request for Consensus")
 
             # Send the Block Chain to Client
             client_sess.sendall(pickle.dumps(blockchain.chain))
@@ -122,7 +139,9 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
             client_sess.sendall(CONSENSUS)
 
         elif flag == NEW_DOMAIN:
-            recipient_df = CLIENT_DF.loc[(CLIENT_DF['id'] != self.request) & (CLIENT_DF['client_name'] != MINER.decode())]
+            recipient_df = CLIENT_DF.loc[
+                (CLIENT_DF['id'] != self.request) & (CLIENT_DF['client_name'] != MINER.decode())]
+
             if not recipient_df.empty:
                 for items in recipient_df[['id', 'pubkey']].values:
                     # Import the Public Key
@@ -131,7 +150,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
 
                     encrypted_domain = self.rsa_cipher.encrypt_with_RSA(pub_key=client_pubkey, data=self.plain_domain)
 
-                    print(f"[*] Forwarding Domain information to all nodes")
+                    logging.info(f"Forwarding Domain information to all nodes")
                     client_sess.sendall(encrypted_domain)
                     client_sess.sendall(NEW_DOMAIN)
 
@@ -140,7 +159,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
         recipient_df = CLIENT_DF.loc[CLIENT_DF['id'] == self.request]
         miner_sess = recipient_df['id'].values[0]
 
-        print("\t[+] Sending hash to miner")
+        logging.info("Sending hash to miner")
         # Gets the last block hash
         last_block_hash = (blockchain.block_hash(blockchain.chain[-1]))
         # Sends last block hash to miner
@@ -175,10 +194,14 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                     # Initialise client transaction to broker own transaction
                     blockchain.current_transactions.append(client_transaction[0])
 
-                    print(f"[*] {self.username} has registered for a domain")
+                    logging.info(f"{self.username} has registered for a domain")
                     # Decrypt the given encryption list
                     plaintext = [self.rsa_cipher.decrypt_with_RSA(broker_privkey, ciphertext) for ciphertext in enc]
                     self.plain_domain = b"".join(plaintext)
+
+                    # Save the Domain Registration Information
+                    with open(DOMAIN_PROFILES_LOG, "a+") as out_file:
+                        out_file.write(f"{self.username},{self.plain_domain.decode()}\n")
 
                     self.send_client(NEW_DOMAIN)
 
@@ -191,7 +214,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
                     data, packet = b"", b""
 
                     if blockchain.valid_proof(prev_hash, proof):
-                        print(f"[*] Proof verified, creating new block ...")
+                        logging.info(f"Proof verified, creating new block ...")
 
                         if len(blockchain.current_transactions) == 0:
                             # Creates bogus transaction
@@ -201,6 +224,10 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
 
                         # Creates new block
                         blockchain.new_block(proof=proof, previous_hash=prev_hash)
+
+                        # Save the Current Blockchain to a log file
+                        with open(BLOCKCHAIN_LOG, "w+") as out_file:
+                            out_file.write(json.dumps(blockchain.chain))
 
                         # Send the next hash to MINER
                         self.send_miner()
@@ -223,7 +250,7 @@ class ThreadedServerHandle(socketserver.BaseRequestHandler):
         # Delete the client in the dictionary list
         CLIENT_DF.drop(CLIENT_DF.loc[CLIENT_DF['id'] == self.request].index, inplace=True)
         self.request.close()
-        print(f"[*] {self.username} has been disconnected.")
+        logging.info(f"{self.username} has been disconnected.")
 
     @staticmethod
     def get_username(user_db, user_id):
@@ -256,20 +283,24 @@ def construct_blockchain(bc):
         # Create the new block
         bc.new_block(proof=proof, previous_hash=previous_hash)
 
+    # Save the Current Blockchain to a log file
+    with open(BLOCKCHAIN_LOG, "w+") as out_file:
+        out_file.write(json.dumps(blockchain.chain))
+
 
 if __name__ == "__main__":
     # Start and construct the Blockchain
     blockchain = Blockchain()
-    print("[*] Constructing Blockchain ...")
+    logging.info("Constructing Blockchain ...")
     construct_blockchain(blockchain)
-    print("\t[+] Blockchain constructed !!!")
+    logging.info("Blockchain constructed !!!")
 
     # Start the Broker Server
     server = ThreadedServer((HOST, PORT), ThreadedServerHandle)
 
     try:
         with server:
-            print(f"[*] Server Started on {HOST}:{PORT}")
+            logging.info(f"Server Started on {HOST}:{PORT}")
 
             # Start the server thread to thread every single client
             server_thread = threading.Thread(target=server.serve_forever())
@@ -278,5 +309,5 @@ if __name__ == "__main__":
             server.shutdown()
 
     except KeyboardInterrupt:
-        print("[*] Shutting down Broker ...")
+        logging.info("Shutting down Broker ...")
         server.shutdown()

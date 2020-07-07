@@ -1,0 +1,45 @@
+<div class="modal fade" id="chain_{{ chain['index'] }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-lg modal-dialog-centered">
+        <div class="modal-content">
+            <a href="#" class="modal-close" data-dismiss="modal" aria-label="Close"><em class="ti ti-close"></em></a>
+            <div class="popup-body popup-body-lg">
+                <h3 class="popup-title">Block {{ chain['index'] }}</h3>
+                <table class="table tnx-table">
+                    <thead>
+                    <tr>
+                        <th>Index</th>
+                        <th>Proof</th>
+                        <th>Previous Hash</th>
+                    </tr><!-- tr -->
+                    </thead><!-- thead -->
+
+                    <tbody>
+                    <tr>
+                        <td><span class="lead">{{ chain['index'] }}</span></td>
+                        <td><span><span class="lead">{{ chain['proof'] }}</span></span></td>
+                        <td><span><span class="lead">{{ chain['previous_hash'] }}</span></span></td>
+                    </tr><!-- tr -->
+                    </tbody><!-- tbody -->
+                </table><!-- .table -->
+                <table class="table tnx-table">
+                    <thead>
+                    <tr>
+                        <th>Client</th>
+                        <th>Domain Name</th>
+                        <th>Zone File Hash</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><span class="lead">{{ chain['transactions']['client'] }}</span></td>
+                        <td><span class="lead">{{ chain['transactions']['domain_name'] }}</span></td>
+                        <td><span class="lead">{{ chain['transactions']['zone_file_hash'] }}</span></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- .modal-content -->
+    </div>
+    <!-- .modal-dialog -->
+</div>

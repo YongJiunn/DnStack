@@ -1,7 +1,7 @@
 """
 Miner Script
 
-Author @ Zhao Yea
+Author @ Zhao Yea && Gerald Peh
 """
 
 import time
@@ -68,6 +68,8 @@ class Miners(object):
             elif MINER in packet:
                 data += packet.rstrip(MINER)
                 prev_hash = data.decode()
+
+                # Reset the Data and Packet buffer
                 data, packet = b"", b""
 
                 # Start mining for proof

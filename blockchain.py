@@ -1,7 +1,7 @@
 """
 Block chain Implementation
 
-Author @ Zhao Yea
+Author @ Zhao Yea && Gerald Peh
 """
 
 import hashlib

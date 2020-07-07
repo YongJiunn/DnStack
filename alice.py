@@ -1,7 +1,7 @@
 """
 Alice Prototype (Client)
 
-Author @ Zhao Yea
+Author @ Zhao Yea && Gerald Peh
 """
 
 import os
