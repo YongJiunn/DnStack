@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="../static/css/vendor.bundle49f7.css?ver=104"><!-- Custom styles for this template -->
     <link rel="stylesheet" href="../static/css/style.css" id="layoutstyle">
 </head>
-<body>
+<body class="page-user">
 <div class="topbar-wrap">
     <div class="topbar is-sticky">
         <div class="container">
@@ -22,12 +22,18 @@
                 </ul>
                 <img src="../static/images/dnstack_logo.png" alt="logo" width="100" height="100">
                 <ul class="topbar-nav">
-                    <li class="topbar-nav-item relative"><span class="user-welcome d-none d-lg-inline-block">Welcome! Admin</span>
+                    <li class="topbar-nav-item relative">
                         <span class="toggle-tigger user-thumb"><em class="ti ti-user"></em></span>
+                        <span class="user-welcome d-none d-lg-inline-block">Admin</span>
                     </li><!-- .topbar-nav-item -->
+                    <li>
+                        <a href="{{ url_for('logout') }}" class="btn btn-sm btn-primary btn-auto">Logout</a>
+                    </li>
                 </ul><!-- .topbar-nav -->
             </div>
-        </div><!-- .container --></div><!-- .topbar -->
+        </div><!-- .container -->
+    </div><!-- .topbar -->
+
     <div class="navbar">
         <div class="container">
             <div class="navbar-innr">

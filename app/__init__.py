@@ -11,6 +11,7 @@ WTForms: http://flask.pocoo.org/docs/1.0/patterns/wtforms/
 import os
 import re
 import json
+import socket
 from flask import Flask, render_template, request, redirect, flash, session
 from flask_wtf.csrf import CSRFProtect
 
@@ -30,6 +31,8 @@ CLIENT_SESS_LOG = r"D:\DnStack\logs\client_session.log"
 DOMAIN_PROFILES_LOG = r"D:\DnStack\logs\domain_profiles.log"
 BLOCKCHAIN_LOG = r"D:\DnStack\logs\blockchain.log"
 
+# Server Connection Settings
+HOST, PORT = "localhost", 1335
 
 @app.route('/')
 def index():
@@ -39,6 +42,20 @@ def index():
 
     else:
         try:
+
+            # Test Connection to Broker
+            # Initialise socket
+            client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+            # Connects to broker
+            try:
+                client_sock.connect((HOST, PORT))
+            except ConnectionRefusedError:
+                session['active'] = False
+                flash("Failed connecting to Broker!")
+                return redirect('/')
+
+
             # Load the Blockchain
             with open(BLOCKCHAIN_LOG, "r") as bc_log:
                 blockchain = json.loads(bc_log.read())
@@ -90,7 +107,6 @@ def domains():
                 owner = parse_data[0]
                 domain_info = json.loads(parse_data[1])
 
-                domain_name = ""
                 for key, value in domain_info.items():
                     domain_name = key
                     for items in value:

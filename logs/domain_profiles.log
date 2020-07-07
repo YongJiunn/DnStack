@@ -1,2 +1,2 @@
-alice::{"alice.stack": [{"subdomain": "www", "data": "63.143.243.91", "type": "A"}]}
-bob::{"bob.stack": [{"subdomain": "www", "data": "226.80.6.116", "type": "A"}]}
+alice::{"alice.stack": [{"subdomain": "www", "data": "170.32.165.201", "type": "A"}]}
+bob::{"bob.stack": [{"subdomain": "www", "data": "242.127.97.74", "type": "A"}]}
