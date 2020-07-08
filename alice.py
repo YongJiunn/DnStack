@@ -328,8 +328,13 @@ class Client(object):
         global CACHE_SITES
 
         # Separate the subdomain
-        name, ext = domain_name.split('.')[-2:]
-        domain_name = f'{name}.{ext}'
+        try:
+            name, ext = domain_name.split('.')[-2:]
+            domain_name = f'{name}.{ext}'
+
+        except:
+            print("[*] Domain does not exist! Have you updated your zone file?")
+            return False
 
         # Iterate through CACHE_SITES first before looking in the Blockchain
         results_df = CACHE_SITES.loc[CACHE_SITES['domain_name'] == domain_name]        

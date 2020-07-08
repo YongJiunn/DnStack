@@ -51,7 +51,7 @@ CLIENT_DF = pd.DataFrame(columns=["id", "client_name", "pubkey"])
 
 # Logging Feature
 logging.basicConfig(level=logging.INFO,
-                    format="%(asctime)s [%(levelname)s] %(message)s",
+                    format="%(created)f [%(levelname)s] %(message)s",
                     handlers=[logging.FileHandler(SYSLOG, "w+"), logging.StreamHandler()]
                     )
 
@@ -297,6 +297,7 @@ if __name__ == "__main__":
 
     # Empty the New Domain Log Files
     open(DOMAIN_PROFILES_LOG, 'w').close()
+    open(CLIENT_SESS_LOG, 'w').close()
 
     # Start the Broker Server
     server = ThreadedServer((HOST, PORT), ThreadedServerHandle)

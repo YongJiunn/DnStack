@@ -11,8 +11,9 @@ WTForms: http://flask.pocoo.org/docs/1.0/patterns/wtforms/
 import os
 import re
 import json
-import socket
-from flask import Flask, render_template, request, redirect, flash, session
+
+from time import sleep
+from flask import Flask, render_template, request, redirect, flash, session, jsonify
 from flask_wtf.csrf import CSRFProtect
 
 app = Flask(__name__)  # initialise the flask app
@@ -34,6 +35,7 @@ BLOCKCHAIN_LOG = r"D:\DnStack\logs\blockchain.log"
 # Server Connection Settings
 HOST, PORT = "localhost", 1335
 
+
 @app.route('/')
 def index():
     # Check for Session
@@ -42,20 +44,6 @@ def index():
 
     else:
         try:
-
-            # Test Connection to Broker
-            # Initialise socket
-            client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-            # Connects to broker
-            try:
-                client_sock.connect((HOST, PORT))
-            except ConnectionRefusedError:
-                session['active'] = False
-                flash("Failed connecting to Broker!")
-                return redirect('/')
-
-
             # Load the Blockchain
             with open(BLOCKCHAIN_LOG, "r") as bc_log:
                 blockchain = json.loads(bc_log.read())
@@ -72,11 +60,13 @@ def index():
                 for line in sys_log_file:
                     sys_log.append(re.search(r".*INFO\]\s(.*)", line).group(1))
 
+            num_clients = sum(1 for line in open(CLIENT_SESS_LOG))
             # Load the Domain Page
             new_domain = sum(1 for line in open(DOMAIN_PROFILES_LOG))
 
             templateData = {
                 'blockchain': blockchain,
+                'num_clients': num_clients,
                 'active_clients': active_clients,
                 'sys_log': sys_log,
                 'new_domain': new_domain
@@ -121,6 +111,25 @@ def domains():
         }
 
         return render_template('domain.html', **templateData)
+
+
+@app.route('/notifications')
+def notifications():
+    sys_log = []
+
+    with open(SYSLOG, "r") as sys_log_file:
+        for _ in range(3):
+            next(sys_log_file)
+
+        for line in sys_log_file:
+            epoch_time = line.split(" ")[0]
+            info = re.search(r".*INFO\]\s(.*)", line).group(1)
+            sys_log.append({
+                "epoch" : epoch_time,
+                "data" : info
+            })
+
+    return jsonify(sys_log)
 
 
 @app.route('/login', methods=["POST"])

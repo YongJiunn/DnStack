@@ -18,7 +18,6 @@
     #login_container {
         padding-top: 250px;
     }
-
     </style>
 </head>
 <body>
@@ -34,8 +33,8 @@
                 {% for message in messages %}
                 <div class="alert alert-danger alert-dismissible fade show">
                     {{ message }}
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
-                            aria-hidden="true">&times;</span></button>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span></button>
                 </div>
                 {% endfor %}
                 {% endif %}

@@ -1,5 +1,13 @@
 <!DOCTYPE html>
 <html lang="zxx" class="js">
+<style>
+    [data-notify="progressbar"] {
+        position: fixed;
+        bottom: 5px;
+        right: 2%;
+        width: 18%;
+    }
+</style>
 <body class="page-user">
 {% include 'base.html' %}
 <div class="page-content">
@@ -15,15 +23,19 @@
                             <div class="token-balance-text">
                                 <h6 class="card-sub-title">Active Users</h6>
                                 <span class="lead">
-                                    {{ active_clients|length }}
+                                    {{ num_clients }}
                                 </span>
                             </div>
                         </div>
 
                         <div class="token-balance token-balance-s2"><h6 class="card-sub-title">INFO</h6>
-                            {% for client in active_clients %}
-                            <span>({{ client }})</span>
-                            {% endfor %}
+                            {% if num_clients == 0 %}
+                                <span>No Active Clients</span>
+                            {% else %}
+                                {% for client in active_clients %}
+                                <span>({{ client }})</span>
+                                {% endfor %}
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -45,7 +57,7 @@
                         </div>
 
                         <div class="token-balance token-balance-s2"><h6 class="card-sub-title">INFO</h6>
-                            <span>{{ sys_log|length }} Events!</span>
+                            <span>{{ sys_log|length }} Events</span>
                         </div>
 
                     </div>
@@ -151,13 +163,48 @@
                 </div>
             </div>
         </div>
-
     </div><!-- .container -->
 </div><!-- .page-content -->
 
 {% include 'footer.html' %}
 
 <script>
+    const now = new Date();
+    var latest_epoch = Math.round(now.getTime() / 1000);
+
+    $(document).ready(function () {
+        setInterval(function(){
+            getNotifications();
+        }, 2000);
+    });
+
+    function getNotifications() {
+        $.ajax({
+            url: "/notifications",
+            type: "GET",
+            dataType: "json",
+            success: function (data) {
+                var new_epoch = latest_epoch;
+
+                $.each(data, function(key, value) {
+                    if (value['epoch'] > latest_epoch) {
+                        $.notify({
+                            message: value['data']
+                        },{
+                            type: "primary",
+                            placement: {
+                                from: "bottom",
+                                align: "right"
+                            }
+                        });
+                        new_epoch = value['epoch'];
+                    }
+                });
+                latest_epoch = new_epoch;
+            },
+        });
+    }
+
     $(document).ready(function () {
         $('#dtBasicExample').DataTable({
             searching: false,

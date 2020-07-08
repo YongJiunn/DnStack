@@ -1,34 +1,55 @@
-2020-07-07 23:11:39,387 [INFO] Constructing Blockchain ...
-2020-07-07 23:11:39,456 [INFO] Blockchain constructed !!!
-2020-07-07 23:11:39,458 [INFO] Server Started on 0.0.0.0:1335
-2020-07-07 23:11:41,921 [INFO] alice has started the connection.
-2020-07-07 23:11:41,952 [INFO] Sending Zone file to alice
-2020-07-07 23:11:47,007 [INFO] bob has started the connection.
-2020-07-07 23:11:47,016 [INFO] Sending Zone file to bob
-2020-07-07 23:11:51,232 [INFO] miner has started the connection.
-2020-07-07 23:11:51,240 [INFO] Sending hash to miner
-2020-07-07 23:12:06,287 [INFO] Proof verified, creating new block ...
-2020-07-07 23:12:06,288 [INFO] Sending hash to miner
-2020-07-07 23:12:10,090 [INFO] alice has been disconnected.
-2020-07-07 23:12:12,788 [INFO] alice has started the connection.
-2020-07-07 23:12:12,792 [INFO] Sending Zone file to alice
-2020-07-07 23:12:16,367 [INFO] bob has been disconnected.
-2020-07-07 23:12:19,524 [INFO] bob has started the connection.
-2020-07-07 23:12:19,530 [INFO] Sending Zone file to bob
-2020-07-07 23:12:21,474 [INFO] Proof verified, creating new block ...
-2020-07-07 23:12:21,477 [INFO] Sending hash to miner
-2020-07-07 23:12:33,373 [INFO] alice has registered for a domain
-2020-07-07 23:12:35,027 [INFO] Forwarding Domain information to all nodes
-2020-07-07 23:12:36,917 [INFO] Proof verified, creating new block ...
-2020-07-07 23:12:36,918 [INFO] Sending hash to miner
-2020-07-07 23:12:44,106 [INFO] bob has registered for a domain
-2020-07-07 23:12:45,103 [INFO] Forwarding Domain information to all nodes
-2020-07-07 23:12:51,943 [INFO] Proof verified, creating new block ...
-2020-07-07 23:12:51,945 [INFO] Sending hash to miner
-2020-07-07 23:13:07,072 [INFO] Proof verified, creating new block ...
-2020-07-07 23:13:07,073 [INFO] Sending hash to miner
-2020-07-07 23:13:22,108 [INFO] Proof verified, creating new block ...
-2020-07-07 23:13:22,109 [INFO] Sending hash to miner
-2020-07-07 23:13:37,170 [INFO] Proof verified, creating new block ...
-2020-07-07 23:13:37,171 [INFO] Sending hash to miner
-2020-07-07 23:13:39,360 [INFO] miner has been disconnected.
+1594225273.314490 [INFO] Constructing Blockchain ...
+1594225273.401256 [INFO] Blockchain constructed !!!
+1594225273.403288 [INFO] Server Started on 0.0.0.0:1335
+1594225274.627626 [INFO] miner has started the connection.
+1594225274.631616 [INFO] Sending hash to miner
+1594225285.326537 [INFO] alice has started the connection.
+1594225285.347481 [INFO] Sending Zone file to alice
+1594225289.357790 [INFO] bob has started the connection.
+1594225289.361777 [INFO] Sending Zone file to bob
+1594225289.766657 [INFO] Proof verified, creating new block ...
+1594225289.768652 [INFO] Sending hash to miner
+1594225304.866640 [INFO] Proof verified, creating new block ...
+1594225304.871681 [INFO] Sending hash to miner
+1594225314.917972 [INFO] alice has registered for a domain
+1594225315.796621 [INFO] Forwarding Domain information to all nodes
+1594225319.912100 [INFO] Proof verified, creating new block ...
+1594225319.913100 [INFO] Sending hash to miner
+1594225327.180766 [INFO] bob has registered for a domain
+1594225328.075381 [INFO] Forwarding Domain information to all nodes
+1594225335.200686 [INFO] Proof verified, creating new block ...
+1594225335.205730 [INFO] Sending hash to miner
+1594225344.603022 [INFO] Client alice request for Consensus
+1594225350.218012 [INFO] Proof verified, creating new block ...
+1594225350.221052 [INFO] Sending hash to miner
+1594225351.564704 [INFO] Client bob request for Consensus
+1594225365.323304 [INFO] Proof verified, creating new block ...
+1594225365.328139 [INFO] Sending hash to miner
+1594225380.437972 [INFO] Proof verified, creating new block ...
+1594225380.438969 [INFO] Sending hash to miner
+1594225395.444397 [INFO] Proof verified, creating new block ...
+1594225395.450227 [INFO] Sending hash to miner
+1594225410.569017 [INFO] Proof verified, creating new block ...
+1594225410.573994 [INFO] Sending hash to miner
+1594225425.654470 [INFO] Proof verified, creating new block ...
+1594225425.655482 [INFO] Sending hash to miner
+1594225440.914799 [INFO] Proof verified, creating new block ...
+1594225440.915799 [INFO] Sending hash to miner
+1594225441.453117 [INFO] alice has been disconnected.
+1594225442.473567 [INFO] alice has started the connection.
+1594225442.476559 [INFO] Sending Zone file to alice
+1594225455.952008 [INFO] Proof verified, creating new block ...
+1594225455.956850 [INFO] Sending hash to miner
+1594225471.059994 [INFO] Proof verified, creating new block ...
+1594225471.064832 [INFO] Sending hash to miner
+1594225477.870143 [INFO] alice has registered for a domain
+1594225478.720929 [INFO] Forwarding Domain information to all nodes
+1594225486.075780 [INFO] Proof verified, creating new block ...
+1594225486.076778 [INFO] Sending hash to miner
+1594225501.168535 [INFO] Proof verified, creating new block ...
+1594225501.170530 [INFO] Sending hash to miner
+1594225516.212450 [INFO] Proof verified, creating new block ...
+1594225516.213443 [INFO] Sending hash to miner
+1594225517.690922 [INFO] alice has been disconnected.
+1594225520.116351 [INFO] bob has been disconnected.
+1594225522.440660 [INFO] miner has been disconnected.
