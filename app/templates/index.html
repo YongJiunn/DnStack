@@ -23,19 +23,15 @@
                             <div class="token-balance-text">
                                 <h6 class="card-sub-title">Active Users</h6>
                                 <span class="lead">
-                                    {{ num_clients }}
+                                    {{ active_clients|length }}
                                 </span>
                             </div>
                         </div>
 
                         <div class="token-balance token-balance-s2"><h6 class="card-sub-title">INFO</h6>
-                            {% if num_clients == 0 %}
-                                <span>No Active Clients</span>
-                            {% else %}
-                                {% for client in active_clients %}
+                            {% for client in active_clients %}
                                 <span>({{ client }})</span>
-                                {% endfor %}
-                            {% endif %}
+                            {% endfor %}
                         </div>
                     </div>
                 </div>

@@ -60,13 +60,11 @@ def index():
                 for line in sys_log_file:
                     sys_log.append(re.search(r".*INFO\]\s(.*)", line).group(1))
 
-            num_clients = sum(1 for line in open(CLIENT_SESS_LOG))
             # Load the Domain Page
             new_domain = sum(1 for line in open(DOMAIN_PROFILES_LOG))
 
             templateData = {
                 'blockchain': blockchain,
-                'num_clients': num_clients,
                 'active_clients': active_clients,
                 'sys_log': sys_log,
                 'new_domain': new_domain
