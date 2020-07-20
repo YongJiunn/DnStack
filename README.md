@@ -3,8 +3,7 @@ Implementing DNS with Blockchain Technology
 
 ## Flow Diagram
 ![Overall Flow](img/DnStack_BigPicture.jpg)
-![Blockchain Update](img/DnStack_Blockchainupdate.jpg)
-![Browser Resolver](img/DnStack_BrowserResolver.jpg)
+![Inside DnStack](img/DnStack_BCZF.jpg)
 
 ---
 ## Installation
