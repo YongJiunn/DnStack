@@ -44,6 +44,41 @@ We then implement this Consensus Algorithm call <a href="https://www.ledger.com/
 
 In other words, the longest chain on the network is the de-facto one. Using this algorithm, we reach Consensus amongst the nodes in our network.
 
+### Inside DnStack
+![Inside DnStack](img/DnStack_BCZF.jpg)
+
+---
+
+## Running the Program
+This project requires the following script to operate:
+1. Broker.py
+2. run.py (Web UI of Broker) (Optional to run)
+3. miner.py
+4. alice.py
+5. bob.py
+
+### Broker.py
+> This is the Broker script that handles the traffic flow, and the main leader for our Blockchain.
+```commandline
+python3 broker.py
+```
+
+### Web UI for Broker.py
+> Web UI for the Broker program, to access go to <a href="http://localhost:1337">`http://localhost:1337`</a>
+
+### Miner.py
+> Mining program to calculate Proofs for nodes and communicates with the Broker.
+```commandline
+python3 miner.py
+```
+
+### Alice.py & Bob.py
+> Nodes in our DnStack network.
+```commandline
+python3 alice.py
+python3 bob.py
+```
+
 ---
 
 ## Contributors
