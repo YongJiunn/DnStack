@@ -26,7 +26,7 @@ pip3 install pandas gevent flask flask-wtf pycryptodome
 ## Documentation
 
 ### Flow Diagram
-![Overall Flow](img/DnStack_BigPicture.jpg)
+![Overall Flow](img/DnStack_BigPicture.jpg =250x250)
 
 ### Concept
 #### DnStack vs DNS
