@@ -63,8 +63,11 @@ This project requires the following script to operate:
 python3 broker.py
 ```
 
-### Web UI for Broker.py
+### run.py
 > Web UI for the Broker program, to access go to <a href="http://localhost:1337">`http://localhost:1337`</a>
+```commandline
+python3 run.py
+```
 
 ### Miner.py
 > Mining program to calculate Proofs for nodes and communicates with the Broker.
