@@ -30,7 +30,7 @@ pip3 install pandas gevent flask flask-wtf pycryptodome
 
 ### Concept
 #### DnStack vs DNS
-DnStack is following the concept of Blockstack. The idea is listed in their documentation and DnStack is a Proof-of-Concept (POC) on how Blockstack DNS (BNS) works.
+DnStack is following the concept of Blockstack DNS (BNS). The idea is listed in their documentation and DnStack is a Proof-of-Concept (POC) on how BNS works.
 > Read More
 
 <a href="https://docs.blockstack.org/core/naming/comparison.html#blockstack-vs-dns">Blockstack vs DNS</a>
