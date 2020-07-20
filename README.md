@@ -5,7 +5,7 @@ Implementing DNS with Blockchain Technology
 
 ### Version
 - Make sure your computer comes with Python 3
-- If not, go to `https://www.python.org/downloads/` to download your Python now !
+- If not, go to <a href="https://www.python.org/downloads/"> `https://www.python.org/downloads/` </a> to download your Python now !
 
 ### Clone
 - Clone this repo to your local machine
