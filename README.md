@@ -49,6 +49,6 @@ In other words, the longest chain on the network is the de-facto one. Using this
 ## Contributors
 | **Gerald Peh** | **Tan Zhao Yea**
 | :---: |:---:|
-| [![Gerald Peh](https://avatars3.githubusercontent.com/u/20138589?v=3&s=200)]()    | [![Zhao Yea](https://avatars3.githubusercontent.com/u/19283789?v=3&s=200)]()
+| [![Gerald Peh](https://avatars3.githubusercontent.com/u/20138589?v=3&s=200)](https://www.linkedin.com/in/gxraldpeh/)    | [![Zhao Yea](https://avatars3.githubusercontent.com/u/19283789?v=3&s=200)](https://sg.linkedin.com/in/tan-zhao-yea-114278131)
 | <a href="https://github.com/hellogeraldblah" target="_blank">`github.com/hellogeraldpeh`</a> | <a href="http://github.com/southzyzy" target="_blank">`github.com/southzyzy`</a>
 
