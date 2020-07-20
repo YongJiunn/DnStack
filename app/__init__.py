@@ -12,7 +12,6 @@ import os
 import re
 import json
 
-from time import sleep
 from flask import Flask, render_template, request, redirect, flash, session, jsonify
 from flask_wtf.csrf import CSRFProtect
 
@@ -27,10 +26,10 @@ name_list = []  # specify an empty name list to store the name
 main_class = {}  # store the main class to call the main method in main.py
 
 # Broker Log File
-SYSLOG = r"D:\DnStack\logs\sysinfo.log"
-CLIENT_SESS_LOG = r"D:\DnStack\logs\client_session.log"
-DOMAIN_PROFILES_LOG = r"D:\DnStack\logs\domain_profiles.log"
-BLOCKCHAIN_LOG = r"D:\DnStack\logs\blockchain.log"
+SYSLOG = r"/Users/southzyzy/Work/SAF/DnStack/logs/sysinfo.log"
+CLIENT_SESS_LOG = r"/Users/southzyzy/Work/SAF/DnStack/logs/client_session.log"
+DOMAIN_PROFILES_LOG = r"/Users/southzyzy/Work/SAF/DnStack/logs/domain_profiles.log"
+BLOCKCHAIN_LOG = r"/Users/southzyzy/Work/SAF/DnStack/logs/blockchain.log"
 
 # Server Connection Settings
 HOST, PORT = "localhost", 1335
