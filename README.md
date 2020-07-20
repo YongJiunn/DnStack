@@ -35,6 +35,6 @@ pip3 install pandas gevent flask flask-wtf pycryptodome
 ## Contributors
 | **Gerald Peh** | **Tan Zhao Yea**
 | :---: |:---:|
-| [![Gerald Peh](https://avatars3.githubusercontent.com/u/20138589?s=400&u=bf3ecefd41a55846969aa1a3bbb3f8dfd9e85d07&v=4&s=200)]()    | [![Zhao Yea](https://avatars3.githubusercontent.com/u/19283789?s=400&u=fc869e80430ac069d8613ab919b748a53217fc37&v=4&s=200)]()
+| [![Gerald Peh](https://avatars3.githubusercontent.com/u/20138589?v=3&s=200)]()    | [![Zhao Yea](https://avatars3.githubusercontent.com/u/19283789?v=3&s=200)]()
 | <a href="https://github.com/hellogeraldblah" target="_blank">`github.com/hellogeraldpeh`</a> | <a href="http://github.com/southzyzy" target="_blank">`github.com/southzyzy`</a>
 
