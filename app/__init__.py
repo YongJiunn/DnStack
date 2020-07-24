@@ -48,8 +48,11 @@ def index():
                 blockchain = json.loads(bc_log.read())
 
             # Load the Client Session
-            with open(CLIENT_SESS_LOG, "r") as sess_log:
-                active_clients = sess_log.read().split(",")
+            if os.stat(CLIENT_SESS_LOG).st_size == 0:
+                active_clients = []
+            else:
+                with open(CLIENT_SESS_LOG, "r") as sess_log:
+                    active_clients = sess_log.read().split(",")
 
             # Load the Transaction Session
             sys_log = []

@@ -29,6 +29,7 @@
                         </div>
 
                         <div class="token-balance token-balance-s2"><h6 class="card-sub-title">INFO</h6>
+                            {{ 'No user online' if active_clients|length == 0 }}
                             {% for client in active_clients %}
                                 <span>({{ client }})</span>
                             {% endfor %}
